@@ -1,0 +1,231 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body{
+    font-family: Arial,sans-serif;
+    background-color: #1a1a2e;
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+h1{
+    font-size: 2rem;
+    text-align: center;
+}
+/* Caja principal que centra y limita el ancho del juego*/
+.contenedor {
+    width: 100%;
+    max-width: 500px;
+    padding: 20px;
+}
+
+/*Texto que muestra el numero de ronda*/
+.ronda{
+    text-align: center;
+    color: #a0a0b0;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+}
+/* Estilo de cada tarjeta del juego*/
+.tarjeta{
+    background-color: #16213e;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom:16px;
+}
+/*Texto pequeño de etiqueta como "Categoria" o "Letra"*/
+.etiqueta{
+    font-size: 0.75rem;
+    color:#a0a0b0;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+}
+/*Texto grande que muestra la categoría*/
+.valor{
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+/*Letra gigante aleatoria*/
+.letra{
+    font-size: 5rem;
+    font-weight: bold;
+    text-align: center;
+    color:#e94560;
+}
+
+/* Numero del cronometro*/
+.cronometro{
+    font-size: 3.5rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 16px;
+}
+/* Fila de botones*/
+.botones{
+    display: flex;
+    gap: 10px;
+}
+/* Estilo base de todos los botones*/
+button{
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    background-color: #e94560;
+    color: white;
+    font-weight: bold;
+}
+/* Estilo cuando el boton esta desactivado*/
+button:disabled{
+    background-color: #444;
+    cursor: not-allowed;
+}
+
+/* Cada fila de jugador */
+.fila-jugador {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #2a2a4a;
+}
+
+/* Nombre del jugador */
+.nombre-jugador {
+  font-size: 1rem;
+}
+
+/* Puntos del jugador */
+.puntos-jugador {
+  font-size: 0.9rem;
+  color: #a0a0b0;
+}
+
+/* Jugador eliminado */
+.eliminado {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+/* Fila de botones de cada jugador */
+.acciones {
+  display: flex;
+  gap: 6px;
+}
+
+/* Botón de ganó */
+.btn-gano {
+  background-color: #2ecc71;
+  font-size: 0.8rem;
+  padding: 6px 10px;
+}
+
+/* Botón de inválida */
+.btn-invalida {
+  background-color: #e74c3c;
+  font-size: 0.8rem;
+  padding: 6px 10px;
+}
+
+/* Texto de eliminado */
+.eliminado-texto {
+  font-size: 0.8rem;
+  color: #e74c3c;
+}
+/* Pantalla de victoria */
+.tarjeta-victoria {
+  background-color: #f5f0dc;
+  border-radius: 16px;
+  padding: 40px 30px;
+  text-align: center;
+  animation: aparecer 0.5s ease;
+}
+
+/* Animación de entrada */
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Trofeo animado */
+.trofeo {
+  font-size: 5rem;
+  animation: flotar 1.5s ease-in-out infinite;
+}
+
+@keyframes flotar {
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+/* Título "¡Tenemos ganador!" */
+.titulo-victoria {
+  font-size: 1.6rem;
+  color: #1a2e5a;
+  margin: 16px 0 8px 0;
+  font-weight: bold;
+}
+
+/* Nombre del ganador */
+.nombre-victoria {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #1a2e5a;
+  margin-bottom: 24px;
+  letter-spacing: 0.05em;
+}
+
+/* Tabla de puntos finales */
+.fila-puntos-final {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  margin-bottom: 8px;
+  background-color: #1a2e5a;
+  border-radius: 8px;
+  color: white;
+}
+
+.fila-puntos-final .nombre {
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.fila-puntos-final .puntos {
+  font-size: 1rem;
+  color: #f5f0dc;
+}
+
+/* Botón jugar otra vez */
+#btnJugarOtraVez {
+  margin-top: 24px;
+  background-color: #1a2e5a;
+  color: #f5f0dc;
+  font-size: 1rem;
+  padding: 14px 24px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  width: 100%;
+}
+
+#btnJugarOtraVez:hover {
+  background-color: #2a4a8a;
+}

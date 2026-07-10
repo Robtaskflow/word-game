@@ -1,0 +1,73 @@
+<!DOCTYPE html> 
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title> Word Game</title>
+        <link rel="stylesheet" href="style.css">  
+    </head>
+ <body>
+
+  <!-- PANTALLA 1: Escribir nombre y esperar rival -->
+  <div class="contenedor" id="pantallaInicio">
+    <h1>Word Game</h1>
+    <div class="tarjeta">
+      <p class="etiqueta">Tu nombre</p>
+      <input type="text" id="inputNombre" placeholder="Escribe tu nombre" />
+      <button id="btnUnirse">Buscar partida</button>
+    </div>
+    <p id="textoEspera" style="text-align:center; display:none;">Buscando rival...</p>
+  </div>
+
+  <!-- PANTALLA 2: Juego en marcha (oculta al principio) -->
+  <div class="contenedor" id="pantallaJuego" style="display:none;">
+
+    <p class="ronda" id="rondaTexto">Ronda 1</p>
+
+    <div class="tarjeta">
+      <p class="etiqueta">Categoría</p>
+      <p class="valor" id="categoria">—</p>
+    </div>
+
+    <div class="tarjeta">
+      <p class="etiqueta">Letra</p>
+      <p class="letra" id="letra">—</p>
+    </div>
+
+    <div class="tarjeta">
+      <p class="cronometro" id="cronometro">0.0</p>
+    </div>
+
+    <div class="tarjeta">
+      <p class="etiqueta">Tu respuesta</p>
+      <input type="text" id="inputRespuesta" placeholder="Escribe la palabra" />
+      <button id="btnEnviar">Enviar</button>
+    </div>
+
+  </div>
+
+  <!-- PANTALLA 3: Resultado de la ronda (oculta al principio) -->
+  <div class="contenedor" id="pantallaResultado" style="display:none;">
+    <div class="tarjeta">
+      <p class="etiqueta" id="tituloResultado">Resultado</p>
+      <div id="respuestasJugadores"></div>
+      <button id="btnSiguienteRonda">Siguiente ronda</button>
+    </div>
+  </div>
+
+  <!-- Conectamos la librería de Socket.io (la añade el servidor automáticamente) -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
+
+  <!--PANTALLA 4 : LA VICTORIA FINAL-->
+  <div class="contenedor" id="pantallaVictoria" style="display:none">
+    <div class="tarjeta-victoria">
+      <div class="trofeo">🏆</div>
+      <h2 class="titulo-victoria">¡Tenemos ganador!</h2>
+      <p class="nombre-victoria" id="nombreGanador"></p>
+      <div id="puntosFinales"></div>
+      <button id="btnJugarOtraVez">Jugar otra vez</button>
+    </div>
+  </div>
+</body>
+</html>
