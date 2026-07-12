@@ -248,6 +248,6 @@ console.log('-------------')
 }
 
 // Arrancamos el servidor en el puerto 3000
-servidor.listen(3000, function() {
-  console.log('Servidor escuchando en http://localhost:3000')
+servidor.listen(process.env.PORT || 3000, function() {
+  console.log('Servidor escuchando en el puerto ' + (process.env.PORT || 3000))
 })
