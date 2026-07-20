@@ -346,10 +346,28 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Esperando a otro jugador...')
   })
 
-  socket.on('partidaEncontrada', function(datos) {
+ socket.on('partidaEncontrada', function(datos) {
     console.log('Partida encontrada:', datos)
+
+    // Ocultar pantalla de espera
     document.getElementById('pantallaInicio').style.display = 'none'
-    document.getElementById('pantallaJuego').style.display = 'flex'
+
+    // Rellenar los nombres en la pantalla VS
+    // Asumimos que datos trae los jugadores o podemos usar tu nombre y el rival
+    const nombresJugadores = datos.jugadores || []
+    const rival = nombresJugadores.find(n => n !== miNombre) || 'Rival'
+
+    document.getElementById('vsNombre1').textContent = miNombre || 'Tú'
+    document.getElementById('vsNombre2').textContent = rival
+
+    // Mostrar pantalla VS
+    document.getElementById('pantallaVersus').style.display = 'flex'
+
+    // Durante 3 segundos se muestra el VS y luego pasa a la pantalla de juego
+    setTimeout(function() {
+      document.getElementById('pantallaVersus').style.display = 'none'
+      document.getElementById('pantallaJuego').style.display = 'flex'
+    }, 3000)
   })
 
   // ----- JUEGO EN MARCHA -----

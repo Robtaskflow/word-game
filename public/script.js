@@ -221,12 +221,12 @@ document.addEventListener('DOMContentLoaded', function() {
   })
 
   function iniciarRondaCOM() {
-    if (rondaCOM > 5) {
+    if (puntosUsuarioCOM >= 5 || puntosMaquinaCOM >= 5) {
       finalizarPartidaCOM()
       return
     }
 
-    document.getElementById('rondaTexto').textContent = 'Ronda ' + rondaCOM + ' / 5 (VS Computadora)'
+    document.getElementById('rondaTexto').textContent = 'Ronda ' + rondaCOM + ' (Tú: ' + puntosUsuarioCOM + ' pts | IA: ' + puntosMaquinaCOM + ' pts)'
     usuarioYaRespondio = false
     palabraMaquinaRonda = ''
 
@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'flex'
 
-    // Cronómetro
+    // Cronómetro de la ronda (Límite 30 segundos)
     clearInterval(intervalo)
     tiempo = 0
     document.getElementById('cronometro').textContent = '0.0'
@@ -254,19 +254,27 @@ document.addEventListener('DOMContentLoaded', function() {
     intervalo = setInterval(function() {
       tiempo += 0.1
       document.getElementById('cronometro').textContent = tiempo.toFixed(1)
+
+      if (tiempo >= 30.0) {
+        clearInterval(intervalo)
+        if (!usuarioYaRespondio) {
+          usuarioYaRespondio = true
+          palabraMaquinaRonda = "(Tiempo agotado)"
+          mostrarResultadoCOM("(Sin respuesta)", false, 0)
+        }
+      }
     }, 100)
 
-    // La máquina reacciona entre 2 y 4 segundos
-    const tiempoReaccion = Math.random() * 2000 + 2000
+    // La IA tarda entre 15 y 25 segundos en responder
+    const tiempoReaccionIA = Math.random() * 10000 + 15000
     timerCOM = setTimeout(function() {
       maquinaPiensaYSale()
-    }, tiempoReaccion)
+    }, tiempoReaccionIA)
   }
 
   function maquinaPiensaYSale() {
     if (usuarioYaRespondio) return
 
-    // Buscar palabras válidas en el diccionario que comiencen por la letra actual
     const listaCategoria = diccionario[categoriaActualCOM] || []
     const letraBuscada = letraActualCOM.toLowerCase()
 
@@ -275,14 +283,22 @@ document.addEventListener('DOMContentLoaded', function() {
       return inicial === letraBuscada
     })
 
-    // 85% de probabilidad de que la máquina acierte si hay palabras
-    const acierta = Math.random() < 0.85
+    // 75% de acierto, 25% de fallo
+    const acierta = Math.random() < 0.75
+
     if (acierta && filtradas.length > 0) {
       palabraMaquinaRonda = filtradas[Math.floor(Math.random() * filtradas.length)]
-      puntosMaquinaCOM += 5
+      puntosMaquinaCOM += 1
     } else {
-      palabraMaquinaRonda = "(No contestó a tiempo)"
+      palabraMaquinaRonda = "(La IA falló su intento)"
+      puntosMaquinaCOM = Math.max(0, puntosMaquinaCOM - 1)
     }
+
+    usuarioYaRespondio = true
+    clearInterval(intervalo)
+    clearTimeout(timerCOM)
+
+    mostrarResultadoCOM("(La IA respondió primero)", false, 0)
   }
 
   document.getElementById('btnClasificatoria').addEventListener('click', function() {
@@ -330,10 +346,28 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Esperando a otro jugador...')
   })
 
-  socket.on('partidaEncontrada', function(datos) {
+ socket.on('partidaEncontrada', function(datos) {
     console.log('Partida encontrada:', datos)
+
+    // Ocultar pantalla de espera
     document.getElementById('pantallaInicio').style.display = 'none'
-    document.getElementById('pantallaJuego').style.display = 'flex'
+
+    // Rellenar los nombres en la pantalla VS
+    // Asumimos que datos trae los jugadores o podemos usar tu nombre y el rival
+    const nombresJugadores = datos.jugadores || []
+    const rival = nombresJugadores.find(n => n !== miNombre) || 'Rival'
+
+    document.getElementById('vsNombre1').textContent = miNombre || 'Tú'
+    document.getElementById('vsNombre2').textContent = rival
+
+    // Mostrar pantalla VS
+    document.getElementById('pantallaVersus').style.display = 'flex'
+
+    // Durante 3 segundos se muestra el VS y luego pasa a la pantalla de juego
+    setTimeout(function() {
+      document.getElementById('pantallaVersus').style.display = 'none'
+      document.getElementById('pantallaJuego').style.display = 'flex'
+    }, 3000)
   })
 
   // ----- JUEGO EN MARCHA -----
@@ -373,6 +407,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (enModoVsCOM) {
+      if (usuarioYaRespondio) return
       clearTimeout(timerCOM)
       usuarioYaRespondio = true
       clearInterval(intervalo)
@@ -380,28 +415,31 @@ document.addEventListener('DOMContentLoaded', function() {
       const letraIngresada = respuesta.normalize("NFD").replace(/[\u0300-\u036f]/g, "").charAt(0).toUpperCase()
       const listaCategoria = diccionario[categoriaActualCOM] || []
       
-      // Validar si existe en el diccionario y empieza por la letra correcta
       const esValida = letraIngresada === letraActualCOM && listaCategoria.some(function(p) {
         return p.toLowerCase() === respuesta.toLowerCase()
       })
 
       let puntosUser = 0
       if (esValida) {
-        puntosUser = Math.max(1, Math.round(10 - tiempo))
+        puntosUser = 1
         puntosUsuarioCOM += puntosUser
+      } else {
+        puntosUser = -1
+        puntosUsuarioCOM = Math.max(0, puntosUsuarioCOM + puntosUser)
       }
 
-      // Si la máquina no había respondido aún, forzar respuesta
-      if (!palabraMaquinaRonda || palabraMaquinaRonda === "(No contestó a tiempo)") {
+      if (!palabraMaquinaRonda) {
+        const aciertaIA = Math.random() < 0.75
         const filtradas = listaCategoria.filter(function(p) {
           const inicial = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "").charAt(0).toLowerCase()
           return inicial === letraActualCOM.toLowerCase()
         })
-        if (filtradas.length > 0) {
+        if (aciertaIA && filtradas.length > 0) {
           palabraMaquinaRonda = filtradas[Math.floor(Math.random() * filtradas.length)]
-          puntosMaquinaCOM += 5
+          puntosMaquinaCOM += 1
         } else {
-          palabraMaquinaRonda = "(Sin respuesta)"
+          palabraMaquinaRonda = "(La IA falló)"
+          puntosMaquinaCOM = Math.max(0, puntosMaquinaCOM - 1)
         }
       }
 
@@ -416,17 +454,17 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaResultado').style.display = 'flex'
 
-    document.getElementById('tituloResultado').textContent = validaUser ? '¡Punto anotado!' : 'Palabra incorrecta o inválida'
+    document.getElementById('tituloResultado').textContent = validaUser ? '¡Punto anotado (+1)!' : 'Palabra incorrecta o inválida (-1)'
 
     const contenedor = document.getElementById('respuestasJugadores')
     contenedor.innerHTML = `
       <div class="fila-jugador" style="padding: 8px 0; border-bottom: 1px solid #333;">
         <span class="nombre-jugador">Tú</span>
-        <span class="puntos-jugador">${respUser} — ${ptsUser} pts</span>
+        <span class="puntos-jugador">${respUser} — Total: ${puntosUsuarioCOM} pts</span>
       </div>
       <div class="fila-jugador" style="padding: 8px 0;">
         <span class="nombre-jugador">Computadora (IA)</span>
-        <span class="puntos-jugador">${palabraMaquinaRonda} — (5 pts si acertó)</span>
+        <span class="puntos-jugador">${palabraMaquinaRonda} — Total: ${puntosMaquinaCOM} pts</span>
       </div>
     `
     document.getElementById('btnSiguienteRonda').style.display = 'block'
@@ -467,8 +505,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.getElementById('btnSiguienteRonda').addEventListener('click', function() {
     if (enModoVsCOM) {
-      rondaCOM++
-      iniciarRondaCOM()
+      if (puntosUsuarioCOM >= 5 || puntosMaquinaCOM >= 5) {
+        finalizarPartidaCOM()
+      } else {
+        rondaCOM++
+        iniciarRondaCOM()
+      }
     } else {
       socket.emit('listoSiguienteRonda')
     }
@@ -487,13 +529,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaVictoria').style.display = 'flex'
 
-    const ganoUser = puntosUsuarioCOM >= puntosMaquinaCOM
+    const ganoUser = puntosUsuarioCOM > puntosMaquinaCOM
     document.getElementById('nombreGanador').textContent = ganoUser ? (usuarioActual ? usuarioActual.nombreMostrar : '¡Tú!') : 'Computadora (IA)'
 
     const contenedor = document.getElementById('puntosFinales')
     contenedor.innerHTML = `
-      <div class="fila-puntos-final"><span class="nombre">Tus puntos:</span><span class="puntos">${puntosUsuarioCOM} pts</span></div>
-      <div class="fila-puntos-final"><span class="nombre">Puntos IA:</span><span class="puntos">${puntosMaquinaCOM} pts</span></div>
+      <div class="fila-puntos-final"><span class="nombre">Tus puntos finales:</span><span class="puntos">${puntosUsuarioCOM} pts</span></div>
+      <div class="fila-puntos-final"><span class="nombre">Puntos de la IA:</span><span class="puntos">${puntosMaquinaCOM} pts</span></div>
     `
 
     const usuario = auth.currentUser
@@ -510,7 +552,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const textoContador = document.createElement('p')
     textoContador.style.cssText = 'text-align:center; color:#1a2e5a; margin-top:16px; font-size:0.9rem;'
     textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
-    document.querySelector('.tarjeta-victoria').appendChild(textoContator)
+    document.querySelector('.tarjeta-victoria').appendChild(textoContador)
 
     const contador = setInterval(function() {
       cuenta -= 1
