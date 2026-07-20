@@ -531,3 +531,99 @@ button:disabled {
 
 .stat-victorias .stat-numero { color: #2ecc71; }
 .stat-derrotas .stat-numero { color: #e94560; }
+
+/* Estilos para la Pantalla Versus */
+#pantallaVersus {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: #0f172a;
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.vs-contenedor {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.vs-mitad {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+/* Colores de las mitades acordes a la estética del juego */
+.vs-arriba {
+  background: #1e293b; /* Azul oscuro elegante */
+}
+
+.vs-abajo {
+  background: #090d16; /* Fondo más oscuro para contraste */
+}
+
+.vs-nombre {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  animation: aparecerNombre 0.6s ease-out;
+}
+
+/* Línea divisoria en forma de rayo */
+.vs-rayo-division {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: linear-gradient(90deg, transparent, #3b82f6, #60a5fa, #3b82f6, transparent);
+  transform: translateY(-50%) rotate(-3deg);
+  z-index: 10;
+  box-shadow: 0 0 15px #3b82f6, 0 0 30px #60a5fa;
+}
+
+/* Círculo central con el texto VS */
+.vs-texto-central {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #3b82f6;
+  color: #ffffff;
+  font-size: 1.8rem;
+  font-weight: bold;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 4px solid #ffffff;
+  z-index: 11;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+  animation: latidoVS 1s infinite alternate;
+}
+
+@keyframes latidoVS {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  100% { transform: translate(-50%, -50%) scale(1.1); }
+}
+
+@keyframes aparecerNombre {
+  0% { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
