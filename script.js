@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
       obtenerUsuario(usuario.uid).then(function(doc) {
         if (doc.exists) {
           usuarioActual = doc.data()
+          gestionarRecargaVidas()
           mostrarBarraUsuario()
           document.getElementById('pantallaLogin').style.display = 'none'
           document.getElementById('pantallaBienvenida').style.display = 'flex'
@@ -123,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const usuario = auth.currentUser
         guardarUsuario(usuario.uid, nombre, usuario.email)
           .then(function() {
-            usuarioActual = { nombreMostrar: nombre, xp: 0, victorias: 0, derrotas: 0, partidas: 0 }
+            usuarioActual = { nombreMostrar: nombre, xp: 0, victorias: 0, derrotas: 0, partidas: 0, vidas: 3, ultimoTiempoVida: null }
             mostrarBarraUsuario()
             document.getElementById('pantallaElegirNombre').style.display = 'none'
             document.getElementById('pantallaBienvenida').style.display = 'flex'
@@ -131,6 +132,72 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     })
   })
+
+  // ----- SISTEMA DE VIDAS -----
+
+  function gestionarRecargaVidas() {
+    if (!usuarioActual) return
+
+    const VIDA_MAXIMA = 3
+    const TIEMPO_RECARGA_MS = 60 * 60 * 1000 // 1 hora
+    let vidasActuales = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 3
+    let ultimoTiempo = usuarioActual.ultimoTiempoVida
+
+    if (vidasActuales < VIDA_MAXIMA && ultimoTiempo) {
+      const ahora = Date.now()
+      const tiempoPasado = ahora - ultimoTiempo
+      const vidasGanadas = Math.floor(tiempoPasado / TIEMPO_RECARGA_MS)
+
+      if (vidasGanadas > 0) {
+        vidasActuales = Math.min(VIDA_MAXIMA, vidasActuales + vidasGanadas)
+        usuarioActual.ultimoTiempoVida = ultimoTiempo + (vidasGanadas * TIEMPO_RECARGA_MS)
+        if (vidasActuales === VIDA_MAXIMA) {
+          usuarioActual.ultimoTiempoVida = null
+        }
+        guardarVidasEnFirestore(auth.currentUser.uid, vidasActuales, usuarioActual.ultimoTiempoVida)
+      }
+    }
+    actualizarInterfazVidas()
+  }
+
+  function actualizarInterfazVidas() {
+    if (!usuarioActual) return
+    const vidas = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 3
+    const elementoTexto = document.getElementById('textoVidas')
+    if (elementoTexto) {
+      elementoTexto.textContent = vidas.toFixed(1)
+    }
+  }
+
+  function intentarGastarVida() {
+    if (!usuarioActual) return false
+    const vidasActuales = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 3
+
+    if (vidasActuales < 0.5) {
+      alert('¡No tienes suficientes vidas! Espera a que se recarguen.')
+      return false
+    }
+
+    usuarioActual.vidas = Math.max(0, vidasActuales - 0.5)
+
+    if (vidasActuales === 3) {
+      usuarioActual.ultimoTiempoVida = Date.now()
+    }
+
+    const usuario = auth.currentUser
+    if (usuario) {
+      guardarVidasEnFirestore(usuario.uid, usuarioActual.vidas, usuarioActual.ultimoTiempoVida)
+    }
+    actualizarInterfazVidas()
+    return true
+  }
+
+  function guardarVidasEnFirestore(uid, vidas, ultimoTiempoVida) {
+    return db.collection("usuarios").doc(uid).update({
+      vidas: vidas,
+      ultimoTiempoVida: ultimoTiempoVida
+    })
+  }
 
   // ----- BARRA DE USUARIO Y PERFIL -----
 
@@ -141,6 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('barraNombre').textContent = usuarioActual.nombreMostrar
     document.getElementById('barraRango').textContent = rango.icono
     document.getElementById('barraXP').textContent = (usuarioActual.xp || 0) + ' XP'
+    actualizarInterfazVidas()
   }
 
   function mostrarPerfil() {
@@ -209,6 +277,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // ----- MODO VS COMPUTADORA -----
   document.getElementById('btnVsCOM').addEventListener('click', function() {
+    gestionarRecargaVidas()
+    if (!intentarGastarVida()) return
+
     enModoVsCOM = true
     puntosUsuarioCOM = 0
     puntosMaquinaCOM = 0
@@ -336,6 +407,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // ----- PARTIDA RÁPIDA: Unirse -----
 
   document.getElementById('btnUnirse').addEventListener('click', function() {
+    gestionarRecargaVidas()
+    if (!intentarGastarVida()) return
+
     miNombre = usuarioActual ? usuarioActual.nombreMostrar : '—'
     socket.emit('unirse', miNombre)
     document.getElementById('textoEspera').style.display = 'block'
@@ -346,14 +420,13 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Esperando a otro jugador...')
   })
 
- socket.on('partidaEncontrada', function(datos) {
+  socket.on('partidaEncontrada', function(datos) {
     console.log('Partida encontrada:', datos)
 
     // Ocultar pantalla de espera
     document.getElementById('pantallaInicio').style.display = 'none'
 
     // Rellenar los nombres en la pantalla VS
-    // Asumimos que datos trae los jugadores o podemos usar tu nombre y el rival
     const nombresJugadores = datos.jugadores || []
     const rival = nombresJugadores.find(n => n !== miNombre) || 'Rival'
 
