@@ -1,23 +1,19 @@
-// Funciones auxiliares de Rango y XP integradas para evitar dependencias de carga
-function calcularRango(xp) {
-  if (xp >= 6000) return { icono: '💎', nombre: 'Diamante' }
-  if (xp >= 3000) return { icono: '🥇', nombre: 'Oro' }
-  if (xp >= 1000) return { icono: '🥈', nombre: 'Plata' }
-  return { icono: '🥉', nombre: 'Bronze' }
-}
-
-function xpSiguienteRango(xp) {
-  if (xp >= 6000) return { actual: xp - 6000, necesaria: null }
-  if (xp >= 3000) return { actual: xp - 3000, necesaria: 3000 }
-  if (xp >= 1000) return { actual: xp - 1000, necesaria: 2000 }
-  return { actual: xp, necesaria: 1000 }
-}
-
 // Conectamos con el servidor mediante Socket.io
 const socket = io()
 
 // Guardamos nuestro nombre cuando nos unamos
 let miNombre = ''
+
+// Variables para el modo VS COM
+let enModoVsCOM = false
+let rondaCOM = 1
+let puntosUsuarioCOM = 0
+let puntosMaquinaCOM = 0
+let categoriaActualCOM = ''
+let letraActualCOM = ''
+let timerCOM = null
+let usuarioYaRespondio = false
+let palabraMaquinaRonda = ''
 
 // Esperamos a que toda la página HTML esté cargada antes de buscar botones
 document.addEventListener('DOMContentLoaded', function() {
@@ -205,15 +201,89 @@ document.addEventListener('DOMContentLoaded', function() {
   // ----- MENÚ PRINCIPAL -----
 
   document.getElementById('btnPartidaRapida').addEventListener('click', function() {
+    enModoVsCOM = false
     document.getElementById('pantallaMenu').style.display = 'none'
     document.getElementById('pantallaInicio').style.display = 'flex'
     document.getElementById('nombreEnPartida').textContent = usuarioActual ? usuarioActual.nombreMostrar : '—'
   })
 
+  // ----- MODO VS COMPUTADORA -----
   document.getElementById('btnVsCOM').addEventListener('click', function() {
+    enModoVsCOM = true
+    puntosUsuarioCOM = 0
+    puntosMaquinaCOM = 0
+    rondaCOM = 1
+
     document.getElementById('pantallaMenu').style.display = 'none'
-    document.getElementById('pantallaVsCOM').style.display = 'flex'
+    document.getElementById('pantallaJuego').style.display = 'flex'
+    
+    iniciarRondaCOM()
   })
+
+  function iniciarRondaCOM() {
+    if (rondaCOM > 5) {
+      finalizarPartidaCOM()
+      return
+    }
+
+    document.getElementById('rondaTexto').textContent = 'Ronda ' + rondaCOM + ' / 5 (VS Computadora)'
+    usuarioYaRespondio = false
+    palabraMaquinaRonda = ''
+
+    // Seleccionar categoría aleatoria del diccionario
+    const categoriasKeys = Object.keys(diccionario)
+    categoriaActualCOM = categoriasKeys[Math.floor(Math.random() * categoriasKeys.length)]
+
+    // Generar una letra aleatoria (A-Z)
+    const letras = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ"
+    letraActualCOM = letras.charAt(Math.floor(Math.random() * letras.length))
+
+    document.getElementById('categoria').textContent = categoriaActualCOM
+    document.getElementById('letra').textContent = letraActualCOM
+    document.getElementById('inputRespuesta').value = ''
+    document.getElementById('btnEnviar').disabled = false
+
+    document.getElementById('pantallaResultado').style.display = 'none'
+    document.getElementById('pantallaJuego').style.display = 'flex'
+
+    // Cronómetro
+    clearInterval(intervalo)
+    tiempo = 0
+    document.getElementById('cronometro').textContent = '0.0'
+
+    intervalo = setInterval(function() {
+      tiempo += 0.1
+      document.getElementById('cronometro').textContent = tiempo.toFixed(1)
+    }, 100)
+
+    // La máquina reacciona entre 2 y 4 segundos
+    const tiempoReaccion = Math.random() * 2000 + 2000
+    timerCOM = setTimeout(function() {
+      maquinaPiensaYSale()
+    }, tiempoReaccion)
+  }
+
+  function maquinaPiensaYSale() {
+    if (usuarioYaRespondio) return
+
+    // Buscar palabras válidas en el diccionario que comiencen por la letra actual
+    const listaCategoria = diccionario[categoriaActualCOM] || []
+    const letraBuscada = letraActualCOM.toLowerCase()
+
+    const filtradas = listaCategoria.filter(function(palabra) {
+      const inicial = palabra.normalize("NFD").replace(/[\u0300-\u036f]/g, "").charAt(0).toLowerCase()
+      return inicial === letraBuscada
+    })
+
+    // 85% de probabilidad de que la máquina acierte si hay palabras
+    const acierta = Math.random() < 0.85
+    if (acierta && filtradas.length > 0) {
+      palabraMaquinaRonda = filtradas[Math.floor(Math.random() * filtradas.length)]
+      puntosMaquinaCOM += 5
+    } else {
+      palabraMaquinaRonda = "(No contestó a tiempo)"
+    }
+  }
 
   document.getElementById('btnClasificatoria').addEventListener('click', function() {
     document.getElementById('pantallaMenu').style.display = 'none'
@@ -272,6 +342,8 @@ document.addEventListener('DOMContentLoaded', function() {
   let tiempo = 0
 
   socket.on('nuevaRonda', function(datos) {
+    if (enModoVsCOM) return
+
     document.getElementById('categoria').textContent = datos.categoria
     document.getElementById('letra').textContent = datos.letra
     document.getElementById('inputRespuesta').value = ''
@@ -300,13 +372,70 @@ document.addEventListener('DOMContentLoaded', function() {
       return
     }
 
-    document.getElementById('btnEnviar').disabled = true
-    socket.emit('responder', respuesta)
+    if (enModoVsCOM) {
+      clearTimeout(timerCOM)
+      usuarioYaRespondio = true
+      clearInterval(intervalo)
+
+      const letraIngresada = respuesta.normalize("NFD").replace(/[\u0300-\u036f]/g, "").charAt(0).toUpperCase()
+      const listaCategoria = diccionario[categoriaActualCOM] || []
+      
+      // Validar si existe en el diccionario y empieza por la letra correcta
+      const esValida = letraIngresada === letraActualCOM && listaCategoria.some(function(p) {
+        return p.toLowerCase() === respuesta.toLowerCase()
+      })
+
+      let puntosUser = 0
+      if (esValida) {
+        puntosUser = Math.max(1, Math.round(10 - tiempo))
+        puntosUsuarioCOM += puntosUser
+      }
+
+      // Si la máquina no había respondido aún, forzar respuesta
+      if (!palabraMaquinaRonda || palabraMaquinaRonda === "(No contestó a tiempo)") {
+        const filtradas = listaCategoria.filter(function(p) {
+          const inicial = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "").charAt(0).toLowerCase()
+          return inicial === letraActualCOM.toLowerCase()
+        })
+        if (filtradas.length > 0) {
+          palabraMaquinaRonda = filtradas[Math.floor(Math.random() * filtradas.length)]
+          puntosMaquinaCOM += 5
+        } else {
+          palabraMaquinaRonda = "(Sin respuesta)"
+        }
+      }
+
+      mostrarResultadoCOM(respuesta, esValida, puntosUser)
+    } else {
+      document.getElementById('btnEnviar').disabled = true
+      socket.emit('responder', respuesta)
+    }
+  }
+
+  function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
+    document.getElementById('pantallaJuego').style.display = 'none'
+    document.getElementById('pantallaResultado').style.display = 'flex'
+
+    document.getElementById('tituloResultado').textContent = validaUser ? '¡Punto anotado!' : 'Palabra incorrecta o inválida'
+
+    const contenedor = document.getElementById('respuestasJugadores')
+    contenedor.innerHTML = `
+      <div class="fila-jugador" style="padding: 8px 0; border-bottom: 1px solid #333;">
+        <span class="nombre-jugador">Tú</span>
+        <span class="puntos-jugador">${respUser} — ${ptsUser} pts</span>
+      </div>
+      <div class="fila-jugador" style="padding: 8px 0;">
+        <span class="nombre-jugador">Computadora (IA)</span>
+        <span class="puntos-jugador">${palabraMaquinaRonda} — (5 pts si acertó)</span>
+      </div>
+    `
+    document.getElementById('btnSiguienteRonda').style.display = 'block'
   }
 
   // ----- RESULTADO DE LA RONDA -----
 
   socket.on('resultadoRonda', function(datos) {
+    if (enModoVsCOM) return
     clearInterval(intervalo)
 
     document.getElementById('pantallaJuego').style.display = 'none'
@@ -337,15 +466,61 @@ document.addEventListener('DOMContentLoaded', function() {
   })
 
   document.getElementById('btnSiguienteRonda').addEventListener('click', function() {
-    socket.emit('listoSiguienteRonda')
+    if (enModoVsCOM) {
+      rondaCOM++
+      iniciarRondaCOM()
+    } else {
+      socket.emit('listoSiguienteRonda')
+    }
   })
 
   socket.on('rivalDesconectado', function() {
+    if (enModoVsCOM) return
     alert('Tu rival se ha desconectado. La partida ha terminado.')
     location.reload()
   })
 
   // ----- VICTORIA FINAL -----
+
+  function finalizarPartidaCOM() {
+    document.getElementById('pantallaResultado').style.display = 'none'
+    document.getElementById('pantallaJuego').style.display = 'none'
+    document.getElementById('pantallaVictoria').style.display = 'flex'
+
+    const ganoUser = puntosUsuarioCOM >= puntosMaquinaCOM
+    document.getElementById('nombreGanador').textContent = ganoUser ? (usuarioActual ? usuarioActual.nombreMostrar : '¡Tú!') : 'Computadora (IA)'
+
+    const contenedor = document.getElementById('puntosFinales')
+    contenedor.innerHTML = `
+      <div class="fila-puntos-final"><span class="nombre">Tus puntos:</span><span class="puntos">${puntosUsuarioCOM} pts</span></div>
+      <div class="fila-puntos-final"><span class="nombre">Puntos IA:</span><span class="puntos">${puntosMaquinaCOM} pts</span></div>
+    `
+
+    const usuario = auth.currentUser
+    if (usuario && ganoUser) {
+      actualizarXP(usuario.uid, 30, true).then(function() {
+        return obtenerUsuario(usuario.uid)
+      }).then(function(doc) {
+        usuarioActual = doc.data()
+        mostrarBarraUsuario()
+      })
+    }
+
+    let cuenta = 5
+    const textoContador = document.createElement('p')
+    textoContador.style.cssText = 'text-align:center; color:#1a2e5a; margin-top:16px; font-size:0.9rem;'
+    textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
+    document.querySelector('.tarjeta-victoria').appendChild(textoContator)
+
+    const contador = setInterval(function() {
+      cuenta -= 1
+      textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
+      if (cuenta <= 0) {
+        clearInterval(contador)
+        location.reload()
+      }
+    }, 1000)
+  }
 
   function mostrarVictoria(datos) {
 
@@ -406,5 +581,17 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('btnJugarOtraVez').addEventListener('click', function() {
     location.reload()
   })
+
+  // ----- SERVICE WORKER -----
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(function() {
+        console.log('Service Worker registrado correctamente')
+      })
+      .catch(function(error) {
+        console.log('Error al registrar Service Worker:', error)
+      })
+  }
 
 }) // cierre del DOMContentLoaded
