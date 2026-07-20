@@ -465,6 +465,7 @@ button:disabled {
   cursor: pointer;
   font-weight: bold;
 }
+
 /* Barra de usuario */
 #barraUsuario {
   position: fixed;
@@ -474,6 +475,8 @@ button:disabled {
   z-index: 999;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
   padding: 10px 16px;
   background: rgba(22, 33, 62, 0.95);
   border-bottom: 1px solid #2a4a8a;
@@ -504,6 +507,27 @@ button:disabled {
 .barra-xp-texto {
   font-size: 0.75rem;
   color: #a0a0b0;
+}
+
+/* Estilo para el contenedor de vidas en la barra superior */
+#barraVidas {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #1a2e5a;
+  border: 1px solid #2a4a8a;
+  border-radius: 20px;
+  padding: 4px 12px;
+  color: #ff6b8a;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+#tiempoRecargaVida {
+  font-size: 0.65rem;
+  color: #a0a0b0;
+  display: block;
 }
 
 /* Pantalla de perfil */
