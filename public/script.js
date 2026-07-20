@@ -1,3 +1,18 @@
+// Funciones auxiliares de Rango y XP integradas para evitar dependencias de carga
+function calcularRango(xp) {
+  if (xp >= 6000) return { icono: '💎', nombre: 'Diamante' }
+  if (xp >= 3000) return { icono: '🥇', nombre: 'Oro' }
+  if (xp >= 1000) return { icono: '🥈', nombre: 'Plata' }
+  return { icono: '🥉', nombre: 'Bronze' }
+}
+
+function xpSiguienteRango(xp) {
+  if (xp >= 6000) return { actual: xp - 6000, necesaria: null }
+  if (xp >= 3000) return { actual: xp - 3000, necesaria: 3000 }
+  if (xp >= 1000) return { actual: xp - 1000, necesaria: 2000 }
+  return { actual: xp, necesaria: 1000 }
+}
+
 // Conectamos con el servidor mediante Socket.io
 const socket = io()
 
@@ -391,17 +406,5 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('btnJugarOtraVez').addEventListener('click', function() {
     location.reload()
   })
-
-  // ----- SERVICE WORKER -----
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-      .then(function() {
-        console.log('Service Worker registrado correctamente')
-      })
-      .catch(function(error) {
-        console.log('Error al registrar Service Worker:', error)
-      })
-  }
 
 }) // cierre del DOMContentLoaded

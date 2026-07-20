@@ -1,0 +1,9 @@
+{
+  "appId": "com.wordgame.app",
+  "appName": "Word Game",
+  "webDir": "public",
+  "server": {
+    "url": "https://word-game-qzw7.onrender.com",
+    "cleartext": true
+  }
+}

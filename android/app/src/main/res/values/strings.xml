@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Word Game</string>
+    <string name="title_activity_main">Word Game</string>
+    <string name="package_name">com.wordgame.app</string>
+    <string name="custom_url_scheme">com.wordgame.app</string>
+</resources>

@@ -15,8 +15,9 @@ const servidor = http.createServer(app)
 // Conectamos Socket.io a ese servidor
 const io = new Server(servidor)
 
-// Servimos los archivos de la carpeta actual (html, css, js)
+// Servimos los archivos de la carpeta actual y de public
 app.use(express.static(__dirname))
+app.use(express.static(__dirname + '/public'))
 
 // Lista de categorías y letras posibles
 const categorias = [
@@ -29,17 +30,14 @@ const letras = 'ABCDEFGHIJLMNOPRSTV'.split('')
 // Jugador esperando pareja
 let esperando = null
 
-// Guardamos todas las partidas activas, una por sala
-// partidas['sala123'] = { jugadores: [...], rondaActual: {...} }
+// Guardamos todas las partidas activas
 let partidas = {}
 
 // Cuando un jugador se conecta
 io.on('connection', function(socket) {
   console.log('Nuevo jugador conectado:', socket.id)
 
-  // Cuando el jugador envia su nombre
   socket.on('unirse', function(nombre) {
-
     socket.nombre = nombre
 
     if (esperando === null) {
@@ -56,7 +54,6 @@ io.on('connection', function(socket) {
       jugador1.sala = sala
       jugador2.sala = sala
 
-      // Creamos la partida con los datos de ambos jugadores
       partidas[sala] = {
         jugadores: [
           { id: jugador1.id, nombre: jugador1.nombre, puntos: 0, eliminado: false },
@@ -70,48 +67,38 @@ io.on('connection', function(socket) {
         jugador2: jugador2.nombre
       })
 
-      // Arrancamos la primera ronda
       iniciarRonda(sala)
     }
   })
 
-  // Cuando un jugador envía su respuesta
   socket.on('responder', function(respuesta) {
     const sala = socket.sala
     if (!sala || !partidas[sala]) return
 
     const partida = partidas[sala]
-
-    // Si ya hay alguien que respondió primero en esta ronda, ignoramos
     if (partida.primerEnResponder) return
 
-    // Marcamos a este jugador como el primero en responder
     partida.primerEnResponder = socket.id
     partida.respuestasRonda[socket.id] = respuesta
-    
-    //Cancelamos el temporizador porque alguien respondio a tiempo
-    if (partida.temporizador){
+
+    if (partida.temporizador) {
       clearTimeout(partida.temporizador)
     }
 
     resolverRonda(sala, respuesta, socket.id)
   })
 
-  // Cuando un jugador está listo para la siguiente ronda
   socket.on('listoSiguienteRonda', function() {
     const sala = socket.sala
     if (!sala || !partidas[sala]) return
-
     iniciarRonda(sala)
   })
 
-  // Cuando un jugador se desconecta
   socket.on('disconnect', function() {
     if (esperando === socket) {
       esperando = null
     }
 
-    // Avisamos al rival si estaba en una partida
     if (socket.sala && partidas[socket.sala]) {
       socket.to(socket.sala).emit('rivalDesconectado')
       delete partidas[socket.sala]
@@ -134,39 +121,35 @@ function iniciarRonda(sala) {
   partida.primerEnResponder = null
   partida.respuestasRonda = {}
 
-  //Si habia un temporizador anterior lo cancelamos
-  if (partida.temporizador){
+  if (partida.temporizador) {
     clearTimeout(partida.temporizador)
   }
-//Arrancamos un temporizador de 30 segundos
-//Si nadie responde en ese tiempo, la ronda termina sin ganador
-partida.temporizador = setTimeout(function(){
 
-  //Solo actuamos si nadie respondio todavia
-  if(!partida.primerEnResponder){
-    io.to(sala).emit('resultadoRonda', {
-      mensaje: 'Tiempo agotado. Nadie respondió a tiempo.',
-      jugadores: partida.jugadores.map(function(j) {
-        return {
-          nombre: j.nombre,
-          puntos: j.puntos,
-          eliminado: j.eliminado,
-          respuesta: null
-        }
-      }),
-      ganadorPartida: false
-    })
-  }
-}, 30000) //30000 milisegundos = 30 segundos
-
+  partida.temporizador = setTimeout(function() {
+    if (!partida.primerEnResponder) {
+      io.to(sala).emit('resultadoRonda', {
+        mensaje: 'Tiempo agotado. Nadie respondió a tiempo.',
+        jugadores: partida.jugadores.map(function(j) {
+          return {
+            nombre: j.nombre,
+            puntos: j.puntos,
+            eliminado: j.eliminado,
+            respuesta: null
+          }
+        }),
+        ganadorPartida: false
+      })
+    }
+  }, 30000)
 
   io.to(sala).emit('nuevaRonda', { categoria: categoria, letra: letra })
 }
 
 // Función que elimina acentos de un texto
-function quitarAcentos(texto){
-  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+function quitarAcentos(texto) {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
+
 // Función que decide quién ganó la ronda
 function resolverRonda(sala, respuesta, idJugador) {
   const partida = partidas[sala]
@@ -176,40 +159,24 @@ function resolverRonda(sala, respuesta, idJugador) {
   const categoria = partida.categoriaActual
   const letra = partida.letraActual
 
-// Convertimos la respuesta a minúsculas para comparar siempre igual
   const respuestaLimpia = quitarAcentos(respuesta.trim().toLowerCase())
-
-  //Tambien quitamos acentos a la letra requerida para comparar bien
   const letraLimpia = quitarAcentos(letra.toLowerCase())
 
-  // Comprobamos si la palabra empieza por la letra correcta
   const empiezaBien = respuestaLimpia[0] === letraLimpia
 
-  // Comprobamos si la palabra está en la lista de esa categoría
   const palabrasCategoria = diccionario[categoria] || []
-  const estaEnDiccionario = palabrasCategoria.some(function(palabra){
+  const estaEnDiccionario = palabrasCategoria.some(function(palabra) {
     return quitarAcentos(palabra.toLowerCase()) === respuestaLimpia
   })
-  console.log('--- DEBUG ---')
-console.log('Categoría buscada:', categoria)
-console.log('Claves del diccionario:', Object.keys(diccionario))
-console.log('Respuesta limpia:', respuestaLimpia)
-console.log('Letra limpia:', letraLimpia)
-console.log('Empieza bien:', empiezaBien)
-console.log('Palabras encontradas en categoría:', palabrasCategoria.length)
-console.log('Está en diccionario:', estaEnDiccionario)
-console.log('-------------')
 
   const esValida = empiezaBien && estaEnDiccionario
 
   let mensaje = ''
 
   if (esValida) {
-    // Palabra válida: suma 1 punto
     jugador.puntos += 1
     mensaje = jugador.nombre + ' respondió bien (' + respuesta + ') y suma 1 punto'
   } else {
-    // Palabra inválida
     if (!empiezaBien) {
       mensaje = jugador.nombre + ' usó una palabra que no empieza por ' + letra
     } else {
