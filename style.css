@@ -252,6 +252,7 @@ button:disabled {
   top: 0;
   left: 0;
   background-color: #1a1a2e;
+  padding-top: 60px;
 }
 
 /* Pantalla de bienvenida */
@@ -360,7 +361,7 @@ button:disabled {
   padding: 8px 16px;
   font-size: 0.9rem;
   cursor: pointer;
-  z-index: 100;
+  z-index: 1000;
 }
 
 /* Pantalla de login */
