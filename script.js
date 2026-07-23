@@ -88,8 +88,9 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('Ese nombre ya está en uso, elige otro')
       } else {
         const usuario = auth.currentUser
+        // Todos los usuarios nuevos empiezan con 3 de cada ayuda
         guardarUsuario(usuario.uid, nombre, usuario.email).then(function() {
-          usuarioActual = { nombreMostrar: nombre, xp: 0, victorias: 0, derrotas: 0, partidas: 0, vidas: 6, tiempoUltimaPerdida: null, pistas: 1, tiempoExtra: 1, fantasmas: 1 }
+          usuarioActual = { nombreMostrar: nombre, xp: 0, victorias: 0, derrotas: 0, partidas: 0, vidas: 6, tiempoUltimaPerdida: null, pistas: 3, tiempoExtra: 3, fantasmas: 3 }
           mostrarBarraUsuario()
           document.getElementById('pantallaElegirNombre').style.display = 'none'
           document.getElementById('pantallaBienvenida').style.display = 'flex'
@@ -210,9 +211,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // ----- GESTIÓN DE STOCK DE AYUDAS -----
   function actualizarStockAyudas() {
     if (!usuarioActual) return
-    document.getElementById('stockPista').textContent = usuarioActual.pistas || 0
-    document.getElementById('stockTiempo').textContent = usuarioActual.tiempoExtra || 0
-    document.getElementById('stockFantasma').textContent = usuarioActual.fantasmas || 0
+    document.getElementById('stockPista').textContent = usuarioActual.pistas !== undefined ? usuarioActual.pistas : 3
+    document.getElementById('stockTiempo').textContent = usuarioActual.tiempoExtra !== undefined ? usuarioActual.tiempoExtra : 3
+    document.getElementById('stockFantasma').textContent = usuarioActual.fantasmas !== undefined ? usuarioActual.fantasmas : 3
   }
 
   function guardarInventarioEnFirestore() {
@@ -220,15 +221,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (usuario) {
       db.collection('usuarios').doc(usuario.uid).update({
         xp: usuarioActual.xp,
-        pistas: usuarioActual.pistas || 0,
-        tiempoExtra: usuarioActual.tiempoExtra || 0,
-        fantasmas: usuarioActual.fantasmas || 0
+        pistas: usuarioActual.pistas !== undefined ? usuarioActual.pistas : 3,
+        tiempoExtra: usuarioActual.tiempoExtra !== undefined ? usuarioActual.tiempoExtra : 3,
+        fantasmas: usuarioActual.fantasmas !== undefined ? usuarioActual.fantasmas : 3
       })
     }
     actualizarStockAyudas()
   }
 
-  // ----- TIENDA Y COMPRAS -----
+  // ----- TIENDA Y COMPRAS (Pasarela de pagos 0,99€) -----
   document.getElementById('btnTienda').addEventListener('click', function() {
     document.getElementById('pantallaMenu').style.display = 'none'
     document.getElementById('pantallaTienda').style.display = 'flex'
@@ -239,31 +240,29 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaMenu').style.display = 'flex'
   })
 
+  // Simulación de pasarela de pago real (0,99€)
+  function simularCompraAyuda(tipoAyuda, nombreAyuda) {
+    if (confirm(`¿Deseas comprar 1 ${nombreAyuda} por 0,99 €?`)) {
+      // Aquí se integraría Stripe, Google Play Billing o Apple In-App Purchases en producción
+      if (tipoAyuda === 'pista') usuarioActual.pistas = (usuarioActual.pistas || 0) + 1
+      if (tipoAyuda === 'tiempo') usuarioActual.tiempoExtra = (usuarioActual.tiempoExtra || 0) + 1
+      if (tipoAyuda === 'fantasma') usuarioActual.fantasmas = (usuarioActual.fantasmas || 0) + 1
+
+      guardarInventarioEnFirestore()
+      alert(`¡Compra realizada con éxito! Se ha añadido 1 ${nombreAyuda} a tu inventario.`)
+    }
+  }
+
   document.getElementById('btnComprarPista').addEventListener('click', function() {
-    if ((usuarioActual.xp || 0) < 100) { alert('¡No tienes suficiente XP!'); return }
-    usuarioActual.xp -= 100
-    usuarioActual.pistas = (usuarioActual.pistas || 0) + 1
-    guardarInventarioEnFirestore()
-    mostrarBarraUsuario()
-    alert('¡Has comprado 1 Pista!')
+    simularCompraAyuda('pista', 'Pista')
   })
 
   document.getElementById('btnComprarTiempo').addEventListener('click', function() {
-    if ((usuarioActual.xp || 0) < 150) { alert('¡No tienes suficiente XP!'); return }
-    usuarioActual.xp -= 150
-    usuarioActual.tiempoExtra = (usuarioActual.tiempoExtra || 0) + 1
-    guardarInventarioEnFirestore()
-    mostrarBarraUsuario()
-    alert('¡Has comprado 1 Cegar Rival!')
+    simularCompraAyuda('tiempo', 'Cegar Rival')
   })
 
   document.getElementById('btnComprarFantasma').addEventListener('click', function() {
-    if ((usuarioActual.xp || 0) < 200) { alert('¡No tienes suficiente XP!'); return }
-    usuarioActual.xp -= 200
-    usuarioActual.fantasmas = (usuarioActual.fantasmas || 0) + 1
-    guardarInventarioEnFirestore()
-    mostrarBarraUsuario()
-    alert('¡Has comprado 1 Fantasma!')
+    simularCompraAyuda('fantasma', 'Fantasma')
   })
 
   // ----- USO DE AYUDAS EN PARTIDA -----
@@ -444,13 +443,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const elementoLetra = document.getElementById('letra')
     elementoLetra.textContent = letraActualCOM
 
-    // Si se activó la ceguera, pixelamos al inicio de ronda durante 5s
     if (cegarRivalActivo) {
       elementoLetra.classList.add('letra-pixelada')
       setTimeout(() => {
         elementoLetra.classList.remove('letra-pixelada')
       }, 5000)
-      cegarRivalActivo = false // Se consume para esta ronda
+      cegarRivalActivo = false
     } else {
       elementoLetra.classList.remove('letra-pixelada')
     }
@@ -473,9 +471,8 @@ document.addEventListener('DOMContentLoaded', function() {
           usuarioYaRespondio = true
           palabraMaquinaRonda = '(Tiempo agotado)'
           
-          // Aplicar regla de Fantasma (si está activo no resta puntos)
           let ptsPerdidos = fantasmaActivo ? 0 : -1
-          fantasmaActivo = false // Se consume
+          fantasmaActivo = false
 
           puntosUsuarioCOM = Math.max(0, puntosUsuarioCOM + ptsPerdidos)
           mostrarResultadoCOM('(Sin respuesta - Inmune)', false, ptsPerdidos)
@@ -624,11 +621,10 @@ document.addEventListener('DOMContentLoaded', function() {
       if (esValida) {
         puntosUsuarioCOM += 1
       } else {
-        // Aplicar regla de Fantasma (si está activo no resta puntos)
         let ptsPerdidos = fantasmaActivo ? 0 : -1
         puntosUsuarioCOM = Math.max(0, puntosUsuarioCOM + ptsPerdidos)
       }
-      fantasmaActivo = false // Se consume
+      fantasmaActivo = false
 
       if (!palabraMaquinaRonda) {
         const aciertaIA = Math.random() < 0.75
@@ -649,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       document.getElementById('btnEnviar').disabled = true
       socket.emit('responder', { respuesta: respuesta, fantasma: fantasmaActivo })
-      fantasmaActivo = false // Se consume
+      fantasmaActivo = false
     }
   }
 
@@ -721,7 +717,7 @@ document.addEventListener('DOMContentLoaded', function() {
     location.reload()
   })
 
-  // ----- VICTORIA VS COM -----
+  // ----- VICTORIA VS COM (Recompensa de nivel y recompensa de subida de rango) -----
 
   function finalizarPartidaCOM() {
     document.getElementById('pantallaResultado').style.display = 'none'
@@ -740,11 +736,33 @@ document.addEventListener('DOMContentLoaded', function() {
     `
 
     const usuario = auth.currentUser
-    if (usuario && ganoUser) {
+    if (usuario && ganoUser && usuarioActual) {
+      const xpAnterior = usuarioActual.xp || 0
+      const rangoAnterior = calcularRango(xpAnterior).nombre
+
       actualizarXP(usuario.uid, 30, true).then(function() {
         return obtenerUsuario(usuario.uid)
       }).then(function(doc) {
-        usuarioActual = doc.data()
+        const nuevoDatos = doc.data()
+        const nuevoXp = nuevoDatos.xp || 0
+        const rangoNuevo = calcularRango(nuevoXp).nombre
+
+        // Comprobamos si subió de rango para regalarle 1 de cada ayuda
+        if (rangoNuevo !== rangoAnterior) {
+          nuevoDatos.pistas = (nuevoDatos.pistas || 3) + 1
+          nuevoDatos.tiempoExtra = (nuevoDatos.tiempoExtra || 3) + 1
+          nuevoDatos.fantasmas = (nuevoDatos.fantasmas || 3) + 1
+
+          db.collection('usuarios').doc(usuario.uid).update({
+            pistas: nuevoDatos.pistas,
+            tiempoExtra: nuevoDatos.tiempoExtra,
+            fantasmas: nuevoDatos.fantasmas
+          })
+
+          alert('🎉 ¡Enhorabuena! Has subido de rango. Has recibido +1 Pista, +1 Cegar y +1 Fantasma como recompensa.')
+        }
+
+        usuarioActual = nuevoDatos
         mostrarBarraUsuario()
       })
     }
@@ -762,7 +780,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000)
   }
 
-  // ----- VICTORIA ONLINE -----
+  // ----- VICTORIA ONLINE (Recompensa de rango) -----
 
   function mostrarVictoria(datos) {
     const usuario = auth.currentUser
@@ -771,11 +789,31 @@ document.addEventListener('DOMContentLoaded', function() {
         return j.nombre === usuarioActual.nombreMostrar && j.puntos >= 5
       })
       const cantidad = esGanador ? 50 : -10
+      const xpAnterior = usuarioActual.xp || 0
+      const rangoAnterior = calcularRango(xpAnterior).nombre
 
       actualizarXP(usuario.uid, cantidad, !!esGanador).then(function() {
         return obtenerUsuario(usuario.uid)
       }).then(function(doc) {
-        usuarioActual = doc.data()
+        const nuevoDatos = doc.data()
+        const nuevoXp = nuevoDatos.xp || 0
+        const rangoNuevo = calcularRango(nuevoXp).nombre
+
+        if (esGanador && rangoNuevo !== rangoAnterior) {
+          nuevoDatos.pistas = (nuevoDatos.pistas || 3) + 1
+          nuevoDatos.tiempoExtra = (nuevoDatos.tiempoExtra || 3) + 1
+          nuevoDatos.fantasmas = (nuevoDatos.fantasmas || 3) + 1
+
+          db.collection('usuarios').doc(usuario.uid).update({
+            pistas: nuevoDatos.pistas,
+            tiempoExtra: nuevoDatos.tiempoExtra,
+            fantasmas: nuevoDatos.fantasmas
+          })
+
+          alert('🎉 ¡Enhorabuena! Has subido de rango. Has recibido +1 Pista, +1 Cegar y +1 Fantasma como recompensa.')
+        }
+
+        usuarioActual = nuevoDatos
         mostrarBarraUsuario()
       })
     }
@@ -807,6 +845,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const textoContador = document.createElement('p')
     textoContador.style.cssText = 'text-align:center; color:#1a2e5a; margin-top:16px; font-size:0.9rem;'
     textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
+    document.querySelector('.tarjeta-victoria').appendChild(tech = 'Volviendo al menú en ' + cuenta + ' segundos...') // dummy safe
     document.querySelector('.tarjeta-victoria').appendChild(textoContador)
 
     const contador = setInterval(function() {
