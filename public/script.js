@@ -113,8 +113,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if (mediasRecuperadas > 0) {
         vidasActuales = Math.min(VIDAS_MAXIMAS, vidasActuales + mediasRecuperadas)
         usuarioActual.vidas = vidasActuales
-
-        // Descontamos del tiempo total los intervalos ya sumados para que el temporizador siga corriendo fluido
         usuarioActual.tiempoUltimaPerdida = ultimoMs + (mediasRecuperadas * TIEMPO_RECARGA_MS)
 
         if (vidasActuales >= VIDAS_MAXIMAS) {
@@ -135,14 +133,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!usuarioActual) return
     const vidas = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
 
-    // Corazón 1
+    // Dibujar corazones (Lleno: ❤️, Medio/Roto: 💔, Vacío: 🖤)
     document.getElementById('corazon1').textContent = vidas >= 2 ? '❤️' : vidas >= 1 ? '💔' : '🖤'
-    // Corazón 2
     document.getElementById('corazon2').textContent = vidas >= 4 ? '❤️' : vidas >= 3 ? '💔' : '🖤'
-    // Corazón 3
     document.getElementById('corazon3').textContent = vidas >= 6 ? '❤️' : vidas >= 5 ? '💔' : '🖤'
 
-    // Mostrar tiempo de recarga si no están al máximo
+    // Cuenta atrás exacta de 30 minutos para el siguiente medio corazón
     const tiempoEl = document.getElementById('tiempoRecargaVida')
     if (vidas >= 6) {
       tiempoEl.textContent = ''
@@ -150,20 +146,35 @@ document.addEventListener('DOMContentLoaded', function() {
       const ultimoTiempo = usuarioActual.tiempoUltimaPerdida
       if (ultimoTiempo) {
         const ultimoMs = ultimoTiempo.toMillis ? ultimoTiempo.toMillis() : ultimoTiempo
-        const msRestantes = (30 * 60 * 1000) - ((Date.now() - ultimoMs) % (30 * 60 * 1000))
+        const TIEMPO_RECARGA_MS = 30 * 60 * 1000
+        const msTranscurridos = (Date.now() - ultimoMs) % TIEMPO_RECARGA_MS
+        const msRestantes = TIEMPO_RECARGA_MS - msTranscurridos
+
         const minutos = Math.floor(msRestantes / 60000)
         const segundos = Math.floor((msRestantes % 60000) / 1000)
-        tiempoEl.textContent = minutos + 'm ' + segundos + 's'
+        
+        tiempoEl.textContent = `${minutos}:${segundos < 10 ? '0' : ''}${segundos}`
       } else {
-        tiempoEl.textContent = 'Recargando...'
+        tiempoEl.textContent = '30:00'
       }
     }
   }
 
-  // Actualizamos el contador de recarga cada segundo en pantalla y comprobamos recargas automáticas
+  // Intervalo solo para actualizar el reloj visual en pantalla cada segundo sin bloquear el juego
   setInterval(function() {
-    if (usuarioActual) {
-      gestionarRecargaVidas()
+    if (usuarioActual && usuarioActual.vidas < 6) {
+      // Comprobamos si ya tocó recargar de forma silenciosa
+      const VIDAS_MAXIMAS = 6
+      const TIEMPO_RECARGA_MS = 30 * 60 * 1000
+      let ultimoTiempo = usuarioActual.tiempoUltimaPerdida
+      if (ultimoTiempo) {
+        const ultimoMs = ultimoTiempo.toMillis ? ultimoTiempo.toMillis() : ultimoTiempo
+        if (Date.now() - ultimoMs >= TIEMPO_RECARGA_MS) {
+          gestionarRecargaVidas()
+        } else {
+          actualizarInterfazVidas()
+        }
+      }
     }
   }, 1000)
 
@@ -177,12 +188,10 @@ document.addEventListener('DOMContentLoaded', function() {
       return false
     }
 
-    // Si estaba al máximo (6), guardamos el tiempo exacto en el que empieza a gastar el primer medio corazón
     if (vidasActuales === 6) {
       usuarioActual.tiempoUltimaPerdida = Date.now()
     }
 
-    // Gastamos 1 unidad (equivalente a medio corazón, ya que el máximo son 6 unidades para 3 corazones)
     usuarioActual.vidas = Math.max(0, vidasActuales - 1)
 
     const usuario = auth.currentUser
@@ -649,8 +658,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
-      .then(function() { console.log('Service Worker registrado correctamente') })
-      .catch(function(error) { console.log('Error SW:', error) })
+      .statechange = function() { console.log('Service Worker registrado correctamente') }
   }
 
 })
