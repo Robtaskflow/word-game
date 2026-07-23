@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const usuario = auth.currentUser
     if (usuario) {
       db.collection('usuarios').doc(usuario.uid).update({
-        xp: usuarioActual.xp,
+        xp: usuarioActual.xp || 0,
         pistas: usuarioActual.pistas !== undefined ? usuarioActual.pistas : 3,
         tiempoExtra: usuarioActual.tiempoExtra !== undefined ? usuarioActual.tiempoExtra : 3,
         fantasmas: usuarioActual.fantasmas !== undefined ? usuarioActual.fantasmas : 3
@@ -261,9 +261,9 @@ document.addEventListener('DOMContentLoaded', function() {
         obtenerUsuario(usuario.uid).then(function(doc) {
           if (doc.exists) {
             let datosUsr = doc.data()
-            if (tipoComprado === 'pista') datosUsr.pistas = (datosUsr.pistas || 3) + 1
-            if (tipoComprado === 'tiempo') datosUsr.tiempoExtra = (datosUsr.tiempoExtra || 3) + 1
-            if (tipoComprado === 'fantasma') datosUsr.fantasmas = (datosUsr.fantasmas || 3) + 1
+            if (tipoComprado === 'pista') datosUsr.pistas = (datosUsr.pistas !== undefined ? datosUsr.pistas : 3) + 1
+            if (tipoComprado === 'tiempo') datosUsr.tiempoExtra = (datosUsr.tiempoExtra !== undefined ? datosUsr.tiempoExtra : 3) + 1
+            if (tipoComprado === 'fantasma') datosUsr.fantasmas = (datosUsr.fantasmas !== undefined ? datosUsr.fantasmas : 3) + 1
 
             db.collection('usuarios').doc(usuario.uid).update({
               pistas: datosUsr.pistas,
@@ -292,10 +292,13 @@ document.addEventListener('DOMContentLoaded', function() {
     iniciarCompraReal('fantasma', 'Fantasma')
   })
 
-  // ----- USO DE AYUDAS EN PARTIDA -----
+  // ----- USO DE AYUDAS EN PARTIDA (CON VALIDACIÓN SEGURA) -----
 
   document.getElementById('btnAyudaPista').addEventListener('click', function() {
-    if (!usuarioActual || (usuarioActual.pistas || 0) <= 0) {
+    if (!usuarioActual) return
+    if (usuarioActual.pistas === undefined) usuarioActual.pistas = 3
+
+    if (usuarioActual.pistas <= 0) {
       alert('¡No te quedan pistas!'); return
     }
     const lista = diccionario[categoriaActualCOM] || []
@@ -324,7 +327,10 @@ document.addEventListener('DOMContentLoaded', function() {
   })
 
   document.getElementById('btnAyudaTiempo').addEventListener('click', function() {
-    if (!usuarioActual || (usuarioActual.tiempoExtra || 0) <= 0) {
+    if (!usuarioActual) return
+    if (usuarioActual.tiempoExtra === undefined) usuarioActual.tiempoExtra = 3
+
+    if (usuarioActual.tiempoExtra <= 0) {
       alert('¡No te quedan comodines de cegar al rival!'); return
     }
     usuarioActual.tiempoExtra -= 1
@@ -341,7 +347,10 @@ document.addEventListener('DOMContentLoaded', function() {
   })
 
   document.getElementById('btnAyudaFantasma').addEventListener('click', function() {
-    if (!usuarioActual || (usuarioActual.fantasmas || 0) <= 0) {
+    if (!usuarioActual) return
+    if (usuarioActual.fantasmas === undefined) usuarioActual.fantasmas = 3
+
+    if (usuarioActual.fantasmas <= 0) {
       alert('¡No te quedan fantasmas!'); return
     }
     usuarioActual.fantasmas -= 1
@@ -621,7 +630,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const btnEnv = document.getElementById('btnEnviar')
         if (!btnEnv.disabled) {
           btnEnv.disabled = true
-          // Envía respuesta vacía o por tiempo agotado al servidor
           socket.emit('responder', { respuesta: '(Tiempo agotado)', fantasma: fantasmaActivo })
           fantasmaActivo = false
         }
@@ -774,9 +782,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const rangoNuevo = calcularRango(nuevoXp).nombre
 
         if (rangoNuevo !== rangoAnterior) {
-          nuevoDatos.pistas = (nuevoDatos.pistas || 3) + 1
-          nuevoDatos.tiempoExtra = (nuevoDatos.tiempoExtra || 3) + 1
-          nuevoDatos.fantasmas = (nuevoDatos.fantasmas || 3) + 1
+          nuevoDatos.pistas = (nuevoDatos.pistas !== undefined ? nuevoDatos.pistas : 3) + 1
+          nuevoDatos.tiempoExtra = (nuevoDatos.tiempoExtra !== undefined ? nuevoDatos.tiempoExtra : 3) + 1
+          nuevoDatos.fantasmas = (nuevoDatos.fantasmas !== undefined ? nuevoDatos.fantasmas : 3) + 1
 
           db.collection('usuarios').doc(usuario.uid).update({
             pistas: nuevoDatos.pistas,
@@ -823,9 +831,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const rangoNuevo = calcularRango(nuevoXp).nombre
 
         if (esGanador && rangoNuevo !== rangoAnterior) {
-          nuevoDatos.pistas = (nuevoDatos.pistas || 3) + 1
-          nuevoDatos.tiempoExtra = (nuevoDatos.tiempoExtra || 3) + 1
-          nuevoDatos.fantasmas = (nuevoDatos.fantasmas || 3) + 1
+          nuevoDatos.pistas = (nuevoDatos.pistas !== undefined ? nuevoDatos.pistas : 3) + 1
+          nuevoDatos.tiempoExtra = (nuevoDatos.tiempoExtra !== undefined ? nuevoDatos.tiempoExtra : 3) + 1
+          nuevoDatos.fantasmas = (nuevoDatos.fantasmas !== undefined ? nuevoDatos.fantasmas : 3) + 1
 
           db.collection('usuarios').doc(usuario.uid).update({
             pistas: nuevoDatos.pistas,
