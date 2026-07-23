@@ -218,3 +218,40 @@ function resolverRonda(sala, respuesta, idJugador) {
 servidor.listen(process.env.PORT || 3000, function() {
   console.log('Servidor escuchando en el puerto ' + (process.env.PORT || 3000))
 })
+
+// pago en juego
+const stripe = require('stripe')('TU_CLAVE_SECRETA_DE_STRIPE'); // Tu secret key del panel de Stripe
+
+// Endpoint o evento de Socket.io para crear el pago de 0,99 €
+socket.on('comprarAyuda', async (datos) => {
+  const { tipoAyuda, userId } = datos;
+  
+  let nombreProducto = 'Pista';
+  if (tipoAyuda === 'tiempo') nombreProducto = 'Cegar Rival';
+  if (tipoAyuda === 'fantasma') nombreProducto = 'Fantasma';
+
+  try {
+    // Creamos una sesión de pago en Stripe por 0.99 EUR
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: `1x ${nombreProducto} - Word Game`,
+          },
+          unit_amount: 125, // 1,25 céntimos de euro (1,25 €)
+        },
+        quantity: 1,
+      }],
+      mode: 'payment',
+      success_url: `https://tu-dominio.com/juego.html?pago=exito&tipo=${tipoAyuda}&user=${userId}`,
+      cancel_url: `https://tu-dominio.com/juego.html?pago=cancelado`,
+    });
+
+    // Enviamos la URL de Stripe al cliente para redirigirlo
+    socket.emit('redirigirPago', session.url);
+  } catch (error) {
+    console.error('Error al crear la sesión de pago:', error);
+  }
+});

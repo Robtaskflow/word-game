@@ -88,7 +88,6 @@ document.addEventListener('DOMContentLoaded', function() {
         alert('Ese nombre ya está en uso, elige otro')
       } else {
         const usuario = auth.currentUser
-        // Todos los usuarios nuevos empiezan con 3 de cada ayuda
         guardarUsuario(usuario.uid, nombre, usuario.email).then(function() {
           usuarioActual = { nombreMostrar: nombre, xp: 0, victorias: 0, derrotas: 0, partidas: 0, vidas: 6, tiempoUltimaPerdida: null, pistas: 3, tiempoExtra: 3, fantasmas: 3 }
           mostrarBarraUsuario()
@@ -99,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
     })
   })
 
-  // ----- SISTEMA DE VIDAS (3 corazones = 6 unidades de medio corazón) -----
+  // ----- SISTEMA DE VIDAS -----
 
   function obtenerMsTiempo(tiempo) {
     if (!tiempo) return null
@@ -113,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!usuarioActual) return
 
     const VIDAS_MAXIMAS = 6
-    const TIEMPO_RECARGA_MS = 30 * 60 * 1000 // 30 minutos por medio corazón
+    const TIEMPO_RECARGA_MS = 30 * 60 * 1000 
     let vidasActuales = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
     let ultimoMs = obtenerMsTiempo(usuarioActual.tiempoUltimaPerdida)
 
@@ -229,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarStockAyudas()
   }
 
-  // ----- TIENDA Y COMPRAS (Pasarela de pagos 0,99€) -----
+  // ----- TIENDA Y COMPRAS (STRIPE REAL 1,25 €) -----
   document.getElementById('btnTienda').addEventListener('click', function() {
     document.getElementById('pantallaMenu').style.display = 'none'
     document.getElementById('pantallaTienda').style.display = 'flex'
@@ -240,34 +239,61 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaMenu').style.display = 'flex'
   })
 
-  // Simulación de pasarela de pago real (0,99€)
-  function simularCompraAyuda(tipoAyuda, nombreAyuda) {
-    if (confirm(`¿Deseas comprar 1 ${nombreAyuda} por 0,99 €?`)) {
-      // Aquí se integraría Stripe, Google Play Billing o Apple In-App Purchases en producción
-      if (tipoAyuda === 'pista') usuarioActual.pistas = (usuarioActual.pistas || 0) + 1
-      if (tipoAyuda === 'tiempo') usuarioActual.tiempoExtra = (usuarioActual.tiempoExtra || 0) + 1
-      if (tipoAyuda === 'fantasma') usuarioActual.fantasmas = (usuarioActual.fantasmas || 0) + 1
-
-      guardarInventarioEnFirestore()
-      alert(`¡Compra realizada con éxito! Se ha añadido 1 ${nombreAyuda} a tu inventario.`)
+  function iniciarCompraReal(tipoAyuda, nombreAyuda) {
+    if (!usuarioActual || !auth.currentUser) {
+      alert('Debes iniciar sesión para realizar compras.')
+      return
     }
+    // Pide al servidor Node.js que cree la sesión de Stripe por 1,25 €
+    socket.emit('comprarAyuda', { tipoAyuda: tipoAyuda, userId: auth.currentUser.uid })
+  }
+
+  socket.on('redirigirPago', function(urlStripe) {
+    window.location.href = urlStripe
+  })
+
+  // Comprobar retorno de Stripe con pago exitoso
+  const urlParams = new URLSearchParams(window.location.search)
+  if (urlParams.get('pago') === 'exito') {
+    const tipoComprado = urlParams.get('tipo')
+    auth.onAuthStateChanged(function(usuario) {
+      if (usuario) {
+        obtenerUsuario(usuario.uid).then(function(doc) {
+          if (doc.exists) {
+            let datosUsr = doc.data()
+            if (tipoComprado === 'pista') datosUsr.pistas = (datosUsr.pistas || 3) + 1
+            if (tipoComprado === 'tiempo') datosUsr.tiempoExtra = (datosUsr.tiempoExtra || 3) + 1
+            if (tipoComprado === 'fantasma') datosUsr.fantasmas = (datosUsr.fantasmas || 3) + 1
+
+            db.collection('usuarios').doc(usuario.uid).update({
+              pistas: datosUsr.pistas,
+              tiempoExtra: datosUsr.tiempoExtra,
+              fantasmas: datosUsr.fantasmas
+            }).then(() => {
+              alert('¡Pago de 1,25 € completado con éxito! Se ha añadido tu ayuda al inventario.')
+              window.history.replaceState({}, document.title, window.location.pathname)
+              location.reload()
+            })
+          }
+        })
+      }
+    })
   }
 
   document.getElementById('btnComprarPista').addEventListener('click', function() {
-    simularCompraAyuda('pista', 'Pista')
+    iniciarCompraReal('pista', 'Pista')
   })
 
   document.getElementById('btnComprarTiempo').addEventListener('click', function() {
-    simularCompraAyuda('tiempo', 'Cegar Rival')
+    iniciarCompraReal('tiempo', 'Cegar Rival')
   })
 
   document.getElementById('btnComprarFantasma').addEventListener('click', function() {
-    simularCompraAyuda('fantasma', 'Fantasma')
+    iniciarCompraReal('fantasma', 'Fantasma')
   })
 
   // ----- USO DE AYUDAS EN PARTIDA -----
 
-  // 1. PISTA: Da la mitad de una palabra aleatoria con huecos (_)
   document.getElementById('btnAyudaPista').addEventListener('click', function() {
     if (!usuarioActual || (usuarioActual.pistas || 0) <= 0) {
       alert('¡No te quedan pistas!'); return
@@ -297,7 +323,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   })
 
-  // 2. CEGAR RIVAL: Oculta/pixelatea la letra durante 5 segundos
   document.getElementById('btnAyudaTiempo').addEventListener('click', function() {
     if (!usuarioActual || (usuarioActual.tiempoExtra || 0) <= 0) {
       alert('¡No te quedan comodines de cegar al rival!'); return
@@ -315,7 +340,6 @@ document.addEventListener('DOMContentLoaded', function() {
     alert('⏱️ ¡Has cegado al rival! La letra estará pixelada durante 5 segundos.')
   })
 
-  // 3. FANTASMA: Inmunidad al fallo en esta ronda
   document.getElementById('btnAyudaFantasma').addEventListener('click', function() {
     if (!usuarioActual || (usuarioActual.fantasmas || 0) <= 0) {
       alert('¡No te quedan fantasmas!'); return
@@ -381,14 +405,12 @@ document.addEventListener('DOMContentLoaded', function() {
     cerrarSesion().then(function() { location.reload() })
   })
 
-  // ----- BIENVENIDA -----
+  // ----- BIENVENIDA Y MENÚ -----
 
   document.getElementById('pantallaBienvenida').addEventListener('click', function() {
     document.getElementById('pantallaBienvenida').style.display = 'none'
     document.getElementById('pantallaMenu').style.display = 'flex'
   })
-
-  // ----- MENÚ PRINCIPAL -----
 
   document.getElementById('btnPartidaRapida').addEventListener('click', function() {
     gestionarRecargaVidas()
@@ -519,8 +541,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaAjustes').style.display = 'flex'
   })
 
-  // ----- BOTONES DE VOLVER -----
-
   document.getElementById('btnVolverMenu1').addEventListener('click', function() {
     document.getElementById('pantallaInicio').style.display = 'none'
     document.getElementById('pantallaMenu').style.display = 'flex'
@@ -563,8 +583,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 3000)
   })
 
-  // ----- JUEGO EN MARCHA -----
-
   let intervalo = null
   let tiempo = 0
 
@@ -594,9 +612,20 @@ document.addEventListener('DOMContentLoaded', function() {
     tiempo = 0
     document.getElementById('cronometro').textContent = '0.0'
 
+    // Control estricto de los 30 segundos también online
     intervalo = setInterval(function() {
       tiempo += 0.1
       document.getElementById('cronometro').textContent = tiempo.toFixed(1)
+      if (tiempo >= 30.0) {
+        clearInterval(intervalo)
+        const btnEnv = document.getElementById('btnEnviar')
+        if (!btnEnv.disabled) {
+          btnEnv.disabled = true
+          // Envía respuesta vacía o por tiempo agotado al servidor
+          socket.emit('responder', { respuesta: '(Tiempo agotado)', fantasma: fantasmaActivo })
+          fantasmaActivo = false
+        }
+      }
     }, 100)
   })
 
@@ -644,6 +673,7 @@ document.addEventListener('DOMContentLoaded', function() {
       mostrarResultadoCOM(respuesta, esValida, esValida ? 1 : (fantasmaActivo ? 0 : -1))
     } else {
       document.getElementById('btnEnviar').disabled = true
+      clearInterval(intervalo)
       socket.emit('responder', { respuesta: respuesta, fantasma: fantasmaActivo })
       fantasmaActivo = false
     }
@@ -667,8 +697,6 @@ document.addEventListener('DOMContentLoaded', function() {
     `
     document.getElementById('btnSiguienteRonda').style.display = 'block'
   }
-
-  // ----- RESULTADO RONDA ONLINE -----
 
   socket.on('resultadoRonda', function(datos) {
     if (enModoVsCOM) return
@@ -717,8 +745,6 @@ document.addEventListener('DOMContentLoaded', function() {
     location.reload()
   })
 
-  // ----- VICTORIA VS COM (Recompensa de nivel y recompensa de subida de rango) -----
-
   function finalizarPartidaCOM() {
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'none'
@@ -747,7 +773,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const nuevoXp = nuevoDatos.xp || 0
         const rangoNuevo = calcularRango(nuevoXp).nombre
 
-        // Comprobamos si subió de rango para regalarle 1 de cada ayuda
         if (rangoNuevo !== rangoAnterior) {
           nuevoDatos.pistas = (nuevoDatos.pistas || 3) + 1
           nuevoDatos.tiempoExtra = (nuevoDatos.tiempoExtra || 3) + 1
@@ -779,8 +804,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if (cuenta <= 0) { clearInterval(contador); location.reload() }
     }, 1000)
   }
-
-  // ----- VICTORIA ONLINE (Recompensa de rango) -----
 
   function mostrarVictoria(datos) {
     const usuario = auth.currentUser
@@ -845,7 +868,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const textoContador = document.createElement('p')
     textoContador.style.cssText = 'text-align:center; color:#1a2e5a; margin-top:16px; font-size:0.9rem;'
     textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
-    document.querySelector('.tarjeta-victoria').appendChild(tech = 'Volviendo al menú en ' + cuenta + ' segundos...') // dummy safe
     document.querySelector('.tarjeta-victoria').appendChild(textoContador)
 
     const contador = setInterval(function() {
