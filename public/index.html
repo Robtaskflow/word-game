@@ -7,17 +7,18 @@
         <link rel="stylesheet" href="style.css">  
     </head>
 <body>
-  <!-- BARRA DE USUARIO (visible en todas las pantallas excepto login) -->
+  <!-- BARRA DE USUARIO -->
   <div id="barraUsuario" style="display:none;">
     <div class="usuario-info" id="btnVerPerfil">
       <span id="barraRango">🥉</span>
       <span id="barraNombre">—</span>
       <span id="barraXP" class="barra-xp-texto">0 XP</span>
     </div>
-    <!-- Integrado correctamente dentro de la barra superior -->
-    <div class="vidas-contenedor" id="barraVidas">
-      ❤️ <span id="textoVidas">3</span> / 3
-      <span id="tiempoRecargaVida">¡Al máximo!</span>
+    <div class="vidas-contenedor">
+      <span id="corazon1">❤️</span>
+      <span id="corazon2">❤️</span>
+      <span id="corazon3">❤️</span>
+      <span id="tiempoRecargaVida" class="tiempo-recarga"></span>
     </div>
   </div>
 
@@ -25,8 +26,6 @@
   <div class="pantalla" id="pantallaLogin">
     <div class="login-contenido">
       <h1 class="titulo-juego">WORD<span class="titulo-acento">GAME</span></h1>
-
-      <!-- Formulario de login -->
       <div class="tarjeta" id="formLogin">
         <p class="etiqueta">Iniciar sesión</p>
         <input type="email" id="loginEmail" placeholder="Correo electrónico" />
@@ -38,8 +37,6 @@
         </button>
         <p class="login-cambiar">¿No tienes cuenta? <span id="irARegistro">Regístrate</span></p>
       </div>
-
-      <!-- Formulario de registro -->
       <div class="tarjeta" id="formRegistro" style="display:none;">
         <p class="etiqueta">Crear cuenta</p>
         <input type="text" id="registroNombre" placeholder="Nombre de usuario" />
@@ -103,20 +100,6 @@
           <span class="btn-descripcion">Sonido e idioma</span>
         </button>
       </div>
-    </div>
-  </div>
-
-  <!-- PANTALLA VERSUS (VS) -->
-  <div class="pantalla" id="pantallaVersus" style="display:none;">
-    <div class="vs-contenedor">
-      <div class="vs-mitad vs-arriba">
-        <h2 id="vsNombre1" class="vs-nombre">—</h2>
-      </div>
-      <div class="vs-rayo-division"></div>
-      <div class="vs-mitad vs-abajo">
-        <h2 id="vsNombre2" class="vs-nombre">—</h2>
-      </div>
-      <div class="vs-texto-central">VS</div>
     </div>
   </div>
 
@@ -258,8 +241,7 @@
 
   <!-- Nuestros scripts -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="firebase-config.js?v=3"></script>
-  <script src="diccionario.js"></script>
+  <script src="firebase-config.js?v=4"></script>
   <script src="script.js"></script>
 </body>
 </html>

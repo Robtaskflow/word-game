@@ -15,16 +15,12 @@ let timerCOM = null
 let usuarioYaRespondio = false
 let palabraMaquinaRonda = ''
 
-// Esperamos a que toda la página HTML esté cargada antes de buscar botones
 document.addEventListener('DOMContentLoaded', function() {
-
-  // ----- PANTALLA LOGIN -----
 
   let usuarioActual = null
 
   document.getElementById('pantallaBienvenida').style.display = 'none'
 
-  // Comprobamos si el usuario ya está logueado
   auth.onAuthStateChanged(function(usuario) {
     if (usuario) {
       obtenerUsuario(usuario.uid).then(function(doc) {
@@ -44,7 +40,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   })
 
-  // Cambiar entre login y registro
   document.getElementById('irARegistro').addEventListener('click', function() {
     document.getElementById('formLogin').style.display = 'none'
     document.getElementById('formRegistro').style.display = 'block'
@@ -55,80 +50,46 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('formLogin').style.display = 'block'
   })
 
-  // Iniciar sesión con email y contraseña
   document.getElementById('btnLogin').addEventListener('click', function() {
     const email = document.getElementById('loginEmail').value.trim()
     const password = document.getElementById('loginPassword').value.trim()
-
-    if (!email || !password) {
-      alert('Rellena todos los campos')
-      return
-    }
-
-    iniciarSesion(email, password)
-      .catch(function(error) {
-        alert('Error al iniciar sesión: ' + error.message)
-      })
+    if (!email || !password) { alert('Rellena todos los campos'); return }
+    iniciarSesion(email, password).catch(function(error) { alert('Error: ' + error.message) })
   })
 
-  // Registrarse con email y contraseña
   document.getElementById('btnRegistro').addEventListener('click', function() {
     const email = document.getElementById('registroEmail').value.trim()
     const password = document.getElementById('registroPassword').value.trim()
-
-    if (!email || !password) {
-      alert('Rellena todos los campos')
-      return
-    }
-
-    registrarse(email, password)
-      .catch(function(error) {
-        alert('Error al registrarse: ' + error.message)
-      })
+    if (!email || !password) { alert('Rellena todos los campos'); return }
+    registrarse(email, password).catch(function(error) { alert('Error: ' + error.message) })
   })
 
-  // Iniciar sesión con Google
   document.getElementById('btnLoginGoogle').addEventListener('click', function() {
-    iniciarSesionGoogle()
-      .catch(function(error) {
-        alert('Error con Google: ' + error.message)
-      })
+    iniciarSesionGoogle().catch(function(error) { alert('Error con Google: ' + error.message) })
   })
 
   document.getElementById('btnRegistroGoogle').addEventListener('click', function() {
-    iniciarSesionGoogle()
-      .catch(function(error) {
-        alert('Error con Google: ' + error.message)
-      })
+    iniciarSesionGoogle().catch(function(error) { alert('Error con Google: ' + error.message) })
   })
 
-  // ----- PANTALLA ELEGIR NOMBRE -----
+  // ----- ELEGIR NOMBRE -----
 
   document.getElementById('btnConfirmarNombre').addEventListener('click', function() {
     const nombre = document.getElementById('inputNombreUsuario').value.trim()
-
-    if (!nombre) {
-      alert('Escribe un nombre de usuario')
-      return
-    }
-
-    if (nombre.length < 3) {
-      alert('El nombre debe tener al menos 3 caracteres')
-      return
-    }
+    if (!nombre) { alert('Escribe un nombre de usuario'); return }
+    if (nombre.length < 3) { alert('El nombre debe tener al menos 3 caracteres'); return }
 
     nombreExiste(nombre).then(function(existe) {
       if (existe) {
-        alert('Ese nombre de usuario ya está en uso, elige otro')
+        alert('Ese nombre ya está en uso, elige otro')
       } else {
         const usuario = auth.currentUser
-        guardarUsuario(usuario.uid, nombre, usuario.email)
-          .then(function() {
-            usuarioActual = { nombreMostrar: nombre, xp: 0, victorias: 0, derrotas: 0, partidas: 0, vidas: 3, ultimoTiempoVida: null }
-            mostrarBarraUsuario()
-            document.getElementById('pantallaElegirNombre').style.display = 'none'
-            document.getElementById('pantallaBienvenida').style.display = 'flex'
-          })
+        guardarUsuario(usuario.uid, nombre, usuario.email).then(function() {
+          usuarioActual = { nombreMostrar: nombre, xp: 0, victorias: 0, derrotas: 0, partidas: 0, vidas: 6, tiempoUltimaPerdida: null }
+          mostrarBarraUsuario()
+          document.getElementById('pantallaElegirNombre').style.display = 'none'
+          document.getElementById('pantallaBienvenida').style.display = 'flex'
+        })
       }
     })
   })
@@ -138,64 +99,96 @@ document.addEventListener('DOMContentLoaded', function() {
   function gestionarRecargaVidas() {
     if (!usuarioActual) return
 
-    const VIDA_MAXIMA = 3
-    const TIEMPO_RECARGA_MS = 60 * 60 * 1000 // 1 hora
-    let vidasActuales = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 3
-    let ultimoTiempo = usuarioActual.ultimoTiempoVida
+    const VIDAS_MAXIMAS = 6
+    const TIEMPO_RECARGA_MS = 30 * 60 * 1000 // 30 minutos por medio corazón
+    let vidasActuales = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
+    let ultimoTiempo = usuarioActual.tiempoUltimaPerdida
 
-    if (vidasActuales < VIDA_MAXIMA && ultimoTiempo) {
+    if (vidasActuales < VIDAS_MAXIMAS && ultimoTiempo) {
       const ahora = Date.now()
-      const tiempoPasado = ahora - ultimoTiempo
-      const vidasGanadas = Math.floor(tiempoPasado / TIEMPO_RECARGA_MS)
+      const ultimoMs = ultimoTiempo.toMillis ? ultimoTiempo.toMillis() : ultimoTiempo
+      const tiempoPasado = ahora - ultimoMs
+      const mediasRecuperadas = Math.floor(tiempoPasado / TIEMPO_RECARGA_MS)
 
-      if (vidasGanadas > 0) {
-        vidasActuales = Math.min(VIDA_MAXIMA, vidasActuales + vidasGanadas)
-        usuarioActual.ultimoTiempoVida = ultimoTiempo + (vidasGanadas * TIEMPO_RECARGA_MS)
-        if (vidasActuales === VIDA_MAXIMA) {
-          usuarioActual.ultimoTiempoVida = null
+      if (mediasRecuperadas > 0) {
+        vidasActuales = Math.min(VIDAS_MAXIMAS, vidasActuales + mediasRecuperadas)
+        usuarioActual.vidas = vidasActuales
+
+        if (vidasActuales >= VIDAS_MAXIMAS) {
+          usuarioActual.tiempoUltimaPerdida = null
         }
-        guardarVidasEnFirestore(auth.currentUser.uid, vidasActuales, usuarioActual.ultimoTiempoVida)
+
+        const usuario = auth.currentUser
+        if (usuario) {
+          guardarVidasEnFirestore(usuario.uid, vidasActuales, usuarioActual.tiempoUltimaPerdida)
+        }
       }
     }
+
     actualizarInterfazVidas()
   }
 
   function actualizarInterfazVidas() {
     if (!usuarioActual) return
-    const vidas = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 3
-    const elementoTexto = document.getElementById('textoVidas')
-    if (elementoTexto) {
-      elementoTexto.textContent = vidas.toFixed(1)
+    const vidas = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
+
+    // Corazon 1: lleno si vidas >= 2, medio si vidas >= 1, vacío si vidas < 1
+    document.getElementById('corazon1').textContent = vidas >= 2 ? '❤️' : vidas >= 1 ? '💔' : '🖤'
+    // Corazon 2: lleno si vidas >= 4, medio si vidas >= 3, vacío si vidas < 3
+    document.getElementById('corazon2').textContent = vidas >= 4 ? '❤️' : vidas >= 3 ? '💔' : '🖤'
+    // Corazon 3: lleno si vidas >= 6, medio si vidas >= 5, vacío si vidas < 5
+    document.getElementById('corazon3').textContent = vidas >= 6 ? '❤️' : vidas >= 5 ? '💔' : '🖤'
+
+    // Mostrar tiempo de recarga si no están al máximo
+    const tiempoEl = document.getElementById('tiempoRecargaVida')
+    if (vidas >= 6) {
+      tiempoEl.textContent = ''
+    } else {
+      const ultimoTiempo = usuarioActual.tiempoUltimaPerdida
+      if (ultimoTiempo) {
+        const ultimoMs = ultimoTiempo.toMillis ? ultimoTiempo.toMillis() : ultimoTiempo
+        const msRestantes = (30 * 60 * 1000) - ((Date.now() - ultimoMs) % (30 * 60 * 1000))
+        const minutos = Math.floor(msRestantes / 60000)
+        const segundos = Math.floor((msRestantes % 60000) / 1000)
+        tiempoEl.textContent = minutos + 'm ' + segundos + 's'
+      }
     }
   }
 
+  // Actualizamos el contador de recarga cada segundo
+  setInterval(function() {
+    if (usuarioActual) actualizarInterfazVidas()
+  }, 1000)
+
   function intentarGastarVida() {
     if (!usuarioActual) return false
-    const vidasActuales = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 3
+    const vidasActuales = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
 
-    if (vidasActuales < 0.5) {
-      alert('¡No tienes suficientes vidas! Espera a que se recarguen.')
+    if (vidasActuales < 1) {
+      const tiempoEl = document.getElementById('tiempoRecargaVida')
+      alert('¡No tienes vidas! Espera ' + (tiempoEl.textContent || 'unos minutos') + ' para recuperar media vida.')
       return false
     }
 
-    usuarioActual.vidas = Math.max(0, vidasActuales - 0.5)
+    usuarioActual.vidas = Math.max(0, vidasActuales - 1)
 
-    if (vidasActuales === 3) {
-      usuarioActual.ultimoTiempoVida = Date.now()
+    if (vidasActuales >= 6) {
+      usuarioActual.tiempoUltimaPerdida = Date.now()
     }
 
     const usuario = auth.currentUser
     if (usuario) {
-      guardarVidasEnFirestore(usuario.uid, usuarioActual.vidas, usuarioActual.ultimoTiempoVida)
+      guardarVidasEnFirestore(usuario.uid, usuarioActual.vidas, usuarioActual.tiempoUltimaPerdida)
     }
+
     actualizarInterfazVidas()
     return true
   }
 
-  function guardarVidasEnFirestore(uid, vidas, ultimoTiempoVida) {
-    return db.collection("usuarios").doc(uid).update({
+  function guardarVidasEnFirestore(uid, vidas, tiempoUltimaPerdida) {
+    return db.collection('usuarios').doc(uid).update({
       vidas: vidas,
-      ultimoTiempoVida: ultimoTiempoVida
+      tiempoUltimaPerdida: tiempoUltimaPerdida
     })
   }
 
@@ -225,8 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('perfilPartidas').textContent = usuarioActual.partidas || 0
 
     const winrate = usuarioActual.partidas > 0
-      ? Math.round((usuarioActual.victorias / usuarioActual.partidas) * 100)
-      : 0
+      ? Math.round((usuarioActual.victorias / usuarioActual.partidas) * 100) : 0
     document.getElementById('perfilWinrate').textContent = winrate + '%'
 
     if (progreso.necesaria) {
@@ -239,27 +231,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Abrir perfil
   document.getElementById('btnVerPerfil').addEventListener('click', function() {
     mostrarPerfil()
     document.getElementById('pantallaMenu').style.display = 'none'
     document.getElementById('pantallaPerfil').style.display = 'flex'
   })
 
-  // Volver desde perfil
   document.getElementById('btnVolverPerfil').addEventListener('click', function() {
     document.getElementById('pantallaPerfil').style.display = 'none'
     document.getElementById('pantallaMenu').style.display = 'flex'
   })
 
-  // Cerrar sesión
   document.getElementById('btnCerrarSesion').addEventListener('click', function() {
-    cerrarSesion().then(function() {
-      location.reload()
-    })
+    cerrarSesion().then(function() { location.reload() })
   })
 
-  // ----- PANTALLA BIENVENIDA -----
+  // ----- BIENVENIDA -----
 
   document.getElementById('pantallaBienvenida').addEventListener('click', function() {
     document.getElementById('pantallaBienvenida').style.display = 'none'
@@ -275,7 +262,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('nombreEnPartida').textContent = usuarioActual ? usuarioActual.nombreMostrar : '—'
   })
 
-  // ----- MODO VS COMPUTADORA -----
   document.getElementById('btnVsCOM').addEventListener('click', function() {
     gestionarRecargaVidas()
     if (!intentarGastarVida()) return
@@ -287,7 +273,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('pantallaMenu').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'flex'
-    
     iniciarRondaCOM()
   })
 
@@ -301,23 +286,18 @@ document.addEventListener('DOMContentLoaded', function() {
     usuarioYaRespondio = false
     palabraMaquinaRonda = ''
 
-    // Seleccionar categoría aleatoria del diccionario
     const categoriasKeys = Object.keys(diccionario)
     categoriaActualCOM = categoriasKeys[Math.floor(Math.random() * categoriasKeys.length)]
-
-    // Generar una letra aleatoria (A-Z)
-    const letras = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ"
+    const letras = 'ABCDEFGHIJKLMNOPRSTV'
     letraActualCOM = letras.charAt(Math.floor(Math.random() * letras.length))
 
     document.getElementById('categoria').textContent = categoriaActualCOM
     document.getElementById('letra').textContent = letraActualCOM
     document.getElementById('inputRespuesta').value = ''
     document.getElementById('btnEnviar').disabled = false
-
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'flex'
 
-    // Cronómetro de la ronda (Límite 30 segundos)
     clearInterval(intervalo)
     tiempo = 0
     document.getElementById('cronometro').textContent = '0.0'
@@ -325,22 +305,18 @@ document.addEventListener('DOMContentLoaded', function() {
     intervalo = setInterval(function() {
       tiempo += 0.1
       document.getElementById('cronometro').textContent = tiempo.toFixed(1)
-
       if (tiempo >= 30.0) {
         clearInterval(intervalo)
         if (!usuarioYaRespondio) {
           usuarioYaRespondio = true
-          palabraMaquinaRonda = "(Tiempo agotado)"
-          mostrarResultadoCOM("(Sin respuesta)", false, 0)
+          palabraMaquinaRonda = '(Tiempo agotado)'
+          mostrarResultadoCOM('(Sin respuesta)', false, 0)
         }
       }
     }, 100)
 
-    // La IA tarda entre 15 y 25 segundos en responder
     const tiempoReaccionIA = Math.random() * 10000 + 15000
-    timerCOM = setTimeout(function() {
-      maquinaPiensaYSale()
-    }, tiempoReaccionIA)
+    timerCOM = setTimeout(function() { maquinaPiensaYSale() }, tiempoReaccionIA)
   }
 
   function maquinaPiensaYSale() {
@@ -348,28 +324,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const listaCategoria = diccionario[categoriaActualCOM] || []
     const letraBuscada = letraActualCOM.toLowerCase()
-
     const filtradas = listaCategoria.filter(function(palabra) {
-      const inicial = palabra.normalize("NFD").replace(/[\u0300-\u036f]/g, "").charAt(0).toLowerCase()
+      const inicial = palabra.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toLowerCase()
       return inicial === letraBuscada
     })
 
-    // 75% de acierto, 25% de fallo
     const acierta = Math.random() < 0.75
-
     if (acierta && filtradas.length > 0) {
       palabraMaquinaRonda = filtradas[Math.floor(Math.random() * filtradas.length)]
       puntosMaquinaCOM += 1
     } else {
-      palabraMaquinaRonda = "(La IA falló su intento)"
+      palabraMaquinaRonda = '(La IA falló)'
       puntosMaquinaCOM = Math.max(0, puntosMaquinaCOM - 1)
     }
 
     usuarioYaRespondio = true
     clearInterval(intervalo)
     clearTimeout(timerCOM)
-
-    mostrarResultadoCOM("(La IA respondió primero)", false, 0)
+    mostrarResultadoCOM('(La IA respondió primero)', false, 0)
   }
 
   document.getElementById('btnClasificatoria').addEventListener('click', function() {
@@ -404,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaMenu').style.display = 'flex'
   })
 
-  // ----- PARTIDA RÁPIDA: Unirse -----
+  // ----- PARTIDA RÁPIDA -----
 
   document.getElementById('btnUnirse').addEventListener('click', function() {
     gestionarRecargaVidas()
@@ -421,22 +393,15 @@ document.addEventListener('DOMContentLoaded', function() {
   })
 
   socket.on('partidaEncontrada', function(datos) {
-    console.log('Partida encontrada:', datos)
-
-    // Ocultar pantalla de espera
     document.getElementById('pantallaInicio').style.display = 'none'
 
-    // Rellenar los nombres en la pantalla VS
     const nombresJugadores = datos.jugadores || []
-    const rival = nombresJugadores.find(n => n !== miNombre) || 'Rival'
+    const rival = nombresJugadores.find(function(n) { return n !== miNombre }) || 'Rival'
 
     document.getElementById('vsNombre1').textContent = miNombre || 'Tú'
     document.getElementById('vsNombre2').textContent = rival
-
-    // Mostrar pantalla VS
     document.getElementById('pantallaVersus').style.display = 'flex'
 
-    // Durante 3 segundos se muestra el VS y luego pasa a la pantalla de juego
     setTimeout(function() {
       document.getElementById('pantallaVersus').style.display = 'none'
       document.getElementById('pantallaJuego').style.display = 'flex'
@@ -450,12 +415,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   socket.on('nuevaRonda', function(datos) {
     if (enModoVsCOM) return
-
     document.getElementById('categoria').textContent = datos.categoria
     document.getElementById('letra').textContent = datos.letra
     document.getElementById('inputRespuesta').value = ''
     document.getElementById('btnEnviar').disabled = false
-
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'flex'
 
@@ -473,11 +436,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function enviarRespuesta() {
     const respuesta = document.getElementById('inputRespuesta').value.trim()
-
-    if (!respuesta) {
-      alert('Escribe una palabra antes de enviar')
-      return
-    }
+    if (!respuesta) { alert('Escribe una palabra antes de enviar'); return }
 
     if (enModoVsCOM) {
       if (usuarioYaRespondio) return
@@ -485,38 +444,34 @@ document.addEventListener('DOMContentLoaded', function() {
       usuarioYaRespondio = true
       clearInterval(intervalo)
 
-      const letraIngresada = respuesta.normalize("NFD").replace(/[\u0300-\u036f]/g, "").charAt(0).toUpperCase()
+      const letraIngresada = respuesta.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toUpperCase()
       const listaCategoria = diccionario[categoriaActualCOM] || []
-      
       const esValida = letraIngresada === letraActualCOM && listaCategoria.some(function(p) {
         return p.toLowerCase() === respuesta.toLowerCase()
       })
 
-      let puntosUser = 0
       if (esValida) {
-        puntosUser = 1
-        puntosUsuarioCOM += puntosUser
+        puntosUsuarioCOM += 1
       } else {
-        puntosUser = -1
-        puntosUsuarioCOM = Math.max(0, puntosUsuarioCOM + puntosUser)
+        puntosUsuarioCOM = Math.max(0, puntosUsuarioCOM - 1)
       }
 
       if (!palabraMaquinaRonda) {
         const aciertaIA = Math.random() < 0.75
         const filtradas = listaCategoria.filter(function(p) {
-          const inicial = p.normalize("NFD").replace(/[\u0300-\u036f]/g, "").charAt(0).toLowerCase()
+          const inicial = p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toLowerCase()
           return inicial === letraActualCOM.toLowerCase()
         })
         if (aciertaIA && filtradas.length > 0) {
           palabraMaquinaRonda = filtradas[Math.floor(Math.random() * filtradas.length)]
           puntosMaquinaCOM += 1
         } else {
-          palabraMaquinaRonda = "(La IA falló)"
+          palabraMaquinaRonda = '(La IA falló)'
           puntosMaquinaCOM = Math.max(0, puntosMaquinaCOM - 1)
         }
       }
 
-      mostrarResultadoCOM(respuesta, esValida, puntosUser)
+      mostrarResultadoCOM(respuesta, esValida, esValida ? 1 : -1)
     } else {
       document.getElementById('btnEnviar').disabled = true
       socket.emit('responder', respuesta)
@@ -526,16 +481,15 @@ document.addEventListener('DOMContentLoaded', function() {
   function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaResultado').style.display = 'flex'
-
-    document.getElementById('tituloResultado').textContent = validaUser ? '¡Punto anotado (+1)!' : 'Palabra incorrecta o inválida (-1)'
+    document.getElementById('tituloResultado').textContent = validaUser ? '¡Punto anotado (+1)!' : 'Palabra incorrecta (-1)'
 
     const contenedor = document.getElementById('respuestasJugadores')
     contenedor.innerHTML = `
-      <div class="fila-jugador" style="padding: 8px 0; border-bottom: 1px solid #333;">
+      <div class="fila-jugador" style="padding:8px 0; border-bottom:1px solid #333;">
         <span class="nombre-jugador">Tú</span>
         <span class="puntos-jugador">${respUser} — Total: ${puntosUsuarioCOM} pts</span>
       </div>
-      <div class="fila-jugador" style="padding: 8px 0;">
+      <div class="fila-jugador" style="padding:8px 0;">
         <span class="nombre-jugador">Computadora (IA)</span>
         <span class="puntos-jugador">${palabraMaquinaRonda} — Total: ${puntosMaquinaCOM} pts</span>
       </div>
@@ -543,7 +497,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('btnSiguienteRonda').style.display = 'block'
   }
 
-  // ----- RESULTADO DE LA RONDA -----
+  // ----- RESULTADO RONDA ONLINE -----
 
   socket.on('resultadoRonda', function(datos) {
     if (enModoVsCOM) return
@@ -551,7 +505,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaResultado').style.display = 'flex'
-
     document.getElementById('tituloResultado').textContent = datos.mensaje
 
     const contenedor = document.getElementById('respuestasJugadores')
@@ -568,9 +521,7 @@ document.addEventListener('DOMContentLoaded', function() {
     })
 
     if (datos.ganadorPartida) {
-      setTimeout(function() {
-        mostrarVictoria(datos)
-      }, 2000)
+      setTimeout(function() { mostrarVictoria(datos) }, 2000)
     } else {
       document.getElementById('btnSiguienteRonda').style.display = 'block'
     }
@@ -595,7 +546,7 @@ document.addEventListener('DOMContentLoaded', function() {
     location.reload()
   })
 
-  // ----- VICTORIA FINAL -----
+  // ----- VICTORIA VS COM -----
 
   function finalizarPartidaCOM() {
     document.getElementById('pantallaResultado').style.display = 'none'
@@ -603,11 +554,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaVictoria').style.display = 'flex'
 
     const ganoUser = puntosUsuarioCOM > puntosMaquinaCOM
-    document.getElementById('nombreGanador').textContent = ganoUser ? (usuarioActual ? usuarioActual.nombreMostrar : '¡Tú!') : 'Computadora (IA)'
+    document.getElementById('nombreGanador').textContent = ganoUser
+      ? (usuarioActual ? usuarioActual.nombreMostrar : '¡Tú!')
+      : 'Computadora (IA)'
 
     const contenedor = document.getElementById('puntosFinales')
     contenedor.innerHTML = `
-      <div class="fila-puntos-final"><span class="nombre">Tus puntos finales:</span><span class="puntos">${puntosUsuarioCOM} pts</span></div>
+      <div class="fila-puntos-final"><span class="nombre">Tus puntos:</span><span class="puntos">${puntosUsuarioCOM} pts</span></div>
       <div class="fila-puntos-final"><span class="nombre">Puntos de la IA:</span><span class="puntos">${puntosMaquinaCOM} pts</span></div>
     `
 
@@ -630,22 +583,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const contador = setInterval(function() {
       cuenta -= 1
       textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
-      if (cuenta <= 0) {
-        clearInterval(contador)
-        location.reload()
-      }
+      if (cuenta <= 0) { clearInterval(contador); location.reload() }
     }, 1000)
   }
 
-  function mostrarVictoria(datos) {
+  // ----- VICTORIA ONLINE -----
 
-    // Actualizamos XP según resultado
+  function mostrarVictoria(datos) {
     const usuario = auth.currentUser
-    if (usuario) {
+    if (usuario && usuarioActual) {
       const esGanador = datos.jugadores.find(function(j) {
         return j.nombre === usuarioActual.nombreMostrar && j.puntos >= 5
       })
       const cantidad = esGanador ? 50 : -10
+
+      // Si pierde restamos medio corazón
+      if (!esGanador) {
+        perderMediaVida(usuario.uid).then(function() {
+          return obtenerUsuario(usuario.uid)
+        }).then(function(doc) {
+          usuarioActual = doc.data()
+          actualizarInterfazVidas()
+        })
+      }
+
       actualizarXP(usuario.uid, cantidad, !!esGanador).then(function() {
         return obtenerUsuario(usuario.uid)
       }).then(function(doc) {
@@ -686,10 +647,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const contador = setInterval(function() {
       cuenta -= 1
       textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
-      if (cuenta <= 0) {
-        clearInterval(contador)
-        location.reload()
-      }
+      if (cuenta <= 0) { clearInterval(contador); location.reload() }
     }, 1000)
   }
 
@@ -697,16 +655,10 @@ document.addEventListener('DOMContentLoaded', function() {
     location.reload()
   })
 
-  // ----- SERVICE WORKER -----
-
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
-      .then(function() {
-        console.log('Service Worker registrado correctamente')
-      })
-      .catch(function(error) {
-        console.log('Error al registrar Service Worker:', error)
-      })
+      .then(function() { console.log('Service Worker registrado correctamente') })
+      .catch(function(error) { console.log('Error SW:', error) })
   }
 
 }) // cierre del DOMContentLoaded

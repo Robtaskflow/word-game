@@ -1,4 +1,3 @@
-// Configuración de Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyD_EHjO8zrP_vqrrqcW37_P8eFiP42GmBY",
   authDomain: "word-game-longa.firebaseapp.com",
@@ -8,13 +7,11 @@ const firebaseConfig = {
   appId: "1:349475684419:web:5077c6d7067dc7723c54f6"
 }
 
-// Iniciamos Firebase
 firebase.initializeApp(firebaseConfig)
 const auth = firebase.auth()
 const db = firebase.firestore()
 const providerGoogle = new firebase.auth.GoogleAuthProvider()
 
-// Comprueba si un nombre de usuario ya existe
 function nombreExiste(nombre) {
   return db.collection('usuarios')
     .where('nombreUsuario', '==', nombre.toLowerCase())
@@ -24,7 +21,6 @@ function nombreExiste(nombre) {
     })
 }
 
-// Guarda el usuario en la base de datos
 function guardarUsuario(uid, nombre, email) {
   return db.collection('usuarios').doc(uid).set({
     nombreUsuario: nombre.toLowerCase(),
@@ -32,35 +28,34 @@ function guardarUsuario(uid, nombre, email) {
     email: email,
     partidas: 0,
     victorias: 0,
+    derrotas: 0,
+    xp: 0,
+    vidas: 6,
+    tiempoUltimaPerdida: null,
     creadoEn: firebase.firestore.FieldValue.serverTimestamp()
   })
 }
 
-// Obtiene los datos del usuario
 function obtenerUsuario(uid) {
   return db.collection('usuarios').doc(uid).get()
 }
 
-// Función para registrarse con email y contraseña
 function registrarse(email, contrasena) {
   return auth.createUserWithEmailAndPassword(email, contrasena)
 }
 
-// Función para iniciar sesión con email y contraseña
 function iniciarSesion(email, contrasena) {
   return auth.signInWithEmailAndPassword(email, contrasena)
 }
 
-// Función para iniciar sesión con Google
 function iniciarSesionGoogle() {
   return auth.signInWithPopup(providerGoogle)
 }
 
-// Función para cerrar sesión
 function cerrarSesion() {
   return auth.signOut()
 }
-// Calcula el rango según la XP
+
 function calcularRango(xp) {
   if (xp >= 6000) return { icono: '💎', nombre: 'Diamante' }
   if (xp >= 3000) return { icono: '🥇', nombre: 'Oro' }
@@ -68,7 +63,6 @@ function calcularRango(xp) {
   return { icono: '🥉', nombre: 'Bronze' }
 }
 
-// XP necesaria para el siguiente rango
 function xpSiguienteRango(xp) {
   if (xp >= 6000) return { actual: xp - 6000, necesaria: null }
   if (xp >= 3000) return { actual: xp - 3000, necesaria: 3000 }
@@ -76,7 +70,6 @@ function xpSiguienteRango(xp) {
   return { actual: xp, necesaria: 1000 }
 }
 
-// Actualiza XP del usuario en Firestore
 function actualizarXP(uid, cantidad, esVictoria) {
   return db.collection('usuarios').doc(uid).get().then(function(doc) {
     const datos = doc.data()
@@ -91,6 +84,36 @@ function actualizarXP(uid, cantidad, esVictoria) {
       victorias: victorias,
       derrotas: derrotas,
       partidas: partidas
+    })
+  })
+}
+
+// Calcula las vidas actuales teniendo en cuenta la recuperacion automatica
+function calcularVidasActuales(datos) {
+  const vidasGuardadas = datos.vidas !== undefined ? datos.vidas : 6
+  const tiempoUltimaPerdida = datos.tiempoUltimaPerdida
+
+  if (vidasGuardadas >= 6 || !tiempoUltimaPerdida) return 6
+
+  const ahora = Date.now()
+  const milisegundos30min = 30 * 60 * 1000
+  const tiempoPasado = ahora - tiempoUltimaPerdida.toMillis()
+  const mediasRecuperadas = Math.floor(tiempoPasado / milisegundos30min)
+  const nuevasVidas = Math.min(6, vidasGuardadas + mediasRecuperadas)
+
+  return nuevasVidas
+}
+
+// Quita medio corazon al perder una partida
+function perderMediaVida(uid) {
+  return db.collection('usuarios').doc(uid).get().then(function(doc) {
+    const datos = doc.data()
+    const vidasActuales = calcularVidasActuales(datos)
+    const nuevasVidas = Math.max(0, vidasActuales - 1)
+
+    return db.collection('usuarios').doc(uid).update({
+      vidas: nuevasVidas,
+      tiempoUltimaPerdida: firebase.firestore.Timestamp.fromMillis(Date.now())
     })
   })
 }

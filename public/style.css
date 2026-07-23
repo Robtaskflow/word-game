@@ -19,14 +19,12 @@ h1 {
     text-align: center;
 }
 
-/* Caja principal que centra y limita el ancho del juego */
 .contenedor {
     width: 100%;
     max-width: 500px;
     padding: 20px;
 }
 
-/* Texto que muestra el numero de ronda */
 .ronda {
     text-align: center;
     color: #a0a0b0;
@@ -34,7 +32,6 @@ h1 {
     font-size: 0.9rem;
 }
 
-/* Estilo de cada tarjeta del juego */
 .tarjeta {
     background-color: #16213e;
     border-radius: 12px;
@@ -42,7 +39,6 @@ h1 {
     margin-bottom: 16px;
 }
 
-/* Texto pequeño de etiqueta como "Categoria" o "Letra" */
 .etiqueta {
     font-size: 0.75rem;
     color: #a0a0b0;
@@ -51,13 +47,11 @@ h1 {
     margin-bottom: 8px;
 }
 
-/* Texto grande que muestra la categoría */
 .valor {
     font-size: 1.5rem;
     font-weight: bold;
 }
 
-/* Letra gigante aleatoria */
 .letra {
     font-size: 5rem;
     font-weight: bold;
@@ -65,7 +59,6 @@ h1 {
     color: #e94560;
 }
 
-/* Numero del cronometro */
 .cronometro {
     font-size: 3.5rem;
     font-weight: bold;
@@ -73,7 +66,6 @@ h1 {
     margin-bottom: 16px;
 }
 
-/* --- ZONA DE RESPUESTA GRANDE Y ANIMADA PARA MÓVIL --- */
 #inputRespuesta {
     width: 100%;
     padding: 18px 20px;
@@ -122,13 +114,11 @@ h1 {
     transform: translateY(1px);
 }
 
-/* Fila de botones generales */
 .botones {
     display: flex;
     gap: 10px;
 }
 
-/* Estilo base de botones */
 button {
     flex: 1;
     padding: 12px;
@@ -141,13 +131,11 @@ button {
     font-weight: bold;
 }
 
-/* Estilo cuando el boton esta desactivado */
 button:disabled {
     background-color: #444;
     cursor: not-allowed;
 }
 
-/* Cada fila de jugador */
 .fila-jugador {
   display: flex;
   justify-content: space-between;
@@ -156,50 +144,42 @@ button:disabled {
   border-bottom: 1px solid #2a2a4a;
 }
 
-/* Nombre del jugador */
 .nombre-jugador {
   font-size: 1rem;
 }
 
-/* Puntos del jugador */
 .puntos-jugador {
   font-size: 0.9rem;
   color: #a0a0b0;
 }
 
-/* Jugador eliminado */
 .eliminado {
   opacity: 0.4;
   text-decoration: line-through;
 }
 
-/* Fila de botones de cada jugador */
 .acciones {
   display: flex;
   gap: 6px;
 }
 
-/* Botón de ganó */
 .btn-gano {
   background-color: #2ecc71;
   font-size: 0.8rem;
   padding: 6px 10px;
 }
 
-/* Botón de inválida */
 .btn-invalida {
   background-color: #e74c3c;
   font-size: 0.8rem;
   padding: 6px 10px;
 }
 
-/* Texto de eliminado */
 .eliminado-texto {
   font-size: 0.8rem;
   color: #e74c3c;
 }
 
-/* Pantalla de victoria */
 .tarjeta-victoria {
   background-color: #f5f0dc;
   border-radius: 16px;
@@ -208,19 +188,11 @@ button:disabled {
   animation: aparecer 0.5s ease;
 }
 
-/* Animación de entrada */
 @keyframes aparecer {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-/* Trofeo animado */
 .trofeo {
   font-size: 5rem;
   animation: flotar 1.5s ease-in-out infinite;
@@ -232,7 +204,6 @@ button:disabled {
   100% { transform: translateY(0px); }
 }
 
-/* Título ¡Tenemos ganador! */
 .titulo-victoria {
   font-size: 1.6rem;
   color: #1a2e5a;
@@ -240,7 +211,6 @@ button:disabled {
   font-weight: bold;
 }
 
-/* Nombre del ganador */
 .nombre-victoria {
   font-size: 2.5rem;
   font-weight: bold;
@@ -249,7 +219,6 @@ button:disabled {
   letter-spacing: 0.05em;
 }
 
-/* Tabla de puntos finales */
 .fila-puntos-final {
   display: flex;
   justify-content: space-between;
@@ -271,7 +240,6 @@ button:disabled {
   color: #f5f0dc;
 }
 
-/* Botón jugar otra vez */
 #btnJugarOtraVez {
   margin-top: 24px;
   background-color: #1a2e5a;
@@ -289,7 +257,6 @@ button:disabled {
   background-color: #2a4a8a;
 }
 
-/* Cada pantalla ocupa toda la pantalla */
 .pantalla {
   min-height: 100vh;
   width: 100%;
@@ -304,14 +271,12 @@ button:disabled {
   padding-top: 60px;
 }
 
-/* Pantalla de bienvenida */
 .bienvenida-contenido {
   text-align: center;
   cursor: pointer;
   padding: 20px;
 }
 
-/* Título principal */
 .titulo-juego {
   font-size: 4rem;
   font-weight: 900;
@@ -330,7 +295,6 @@ button:disabled {
   margin-bottom: 40px;
 }
 
-/* Texto animado de toca para continuar */
 .toca-para-continuar {
   font-size: 0.9rem;
   color: #a0a0b0;
@@ -342,7 +306,6 @@ button:disabled {
   50% { opacity: 0.2; }
 }
 
-/* Menú principal */
 .menu-contenido {
   width: 100%;
   max-width: 500px;
@@ -358,7 +321,6 @@ button:disabled {
   letter-spacing: 0.1em;
 }
 
-/* Botones del menú */
 .btn-menu {
   width: 100%;
   background: linear-gradient(135deg, #16213e, #1a2e5a);
@@ -398,7 +360,6 @@ button:disabled {
   margin-top: 4px;
 }
 
-/* Botón de volver */
 .btn-volver {
   position: fixed;
   top: 16px;
@@ -413,7 +374,6 @@ button:disabled {
   z-index: 1000;
 }
 
-/* Pantalla de login */
 .login-contenido {
   width: 100%;
   max-width: 400px;
@@ -440,7 +400,6 @@ button:disabled {
   color: #a0a0b0;
 }
 
-/* Botón de Google */
 .btn-google {
   width: 100%;
   background: white !important;
@@ -453,7 +412,6 @@ button:disabled {
   font-weight: bold;
 }
 
-/* Texto para cambiar entre login y registro */
 .login-cambiar {
   margin-top: 16px;
   color: #a0a0b0;
@@ -474,10 +432,9 @@ button:disabled {
   right: 0;
   z-index: 999;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
+  padding: 8px 16px;
   background: rgba(22, 33, 62, 0.95);
   border-bottom: 1px solid #2a4a8a;
 }
@@ -509,25 +466,27 @@ button:disabled {
   color: #a0a0b0;
 }
 
-/* Estilo para el contenedor de vidas en la barra superior */
-#barraVidas {
+/* Corazones en horizontal */
+.vidas-contenedor {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  flex-direction: row;
   align-items: center;
+  gap: 4px;
   background: #1a2e5a;
   border: 1px solid #2a4a8a;
   border-radius: 20px;
-  padding: 4px 12px;
-  color: #ff6b8a;
-  font-weight: bold;
-  font-size: 0.9rem;
+  padding: 6px 12px;
 }
 
-#tiempoRecargaVida {
-  font-size: 0.65rem;
-  color: #a0a0b0;
-  display: block;
+.vidas-contenedor span {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.tiempo-recarga {
+  font-size: 0.65rem !important;
+  color: #a0a0b0 !important;
+  margin-left: 4px;
 }
 
 /* Pantalla de perfil */
@@ -559,7 +518,6 @@ button:disabled {
   margin-top: 4px;
 }
 
-/* Barra de progreso XP */
 .barra-progreso-contenedor {
   background: #0f1b35;
   border-radius: 10px;
@@ -575,7 +533,6 @@ button:disabled {
   transition: width 0.5s ease;
 }
 
-/* Estadísticas */
 .stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -605,7 +562,7 @@ button:disabled {
 .stat-victorias .stat-numero { color: #2ecc71; }
 .stat-derrotas .stat-numero { color: #e94560; }
 
-/* Estilos para la Pantalla Versus */
+/* Pantalla Versus */
 #pantallaVersus {
   position: fixed;
   top: 0;
@@ -637,13 +594,12 @@ button:disabled {
   position: relative;
 }
 
-/* Colores de las mitades acordes a la estética del juego */
 .vs-arriba {
-  background: #1e293b; /* Azul oscuro elegante */
+  background: #1e293b;
 }
 
 .vs-abajo {
-  background: #090d16; /* Fondo más oscuro para contraste */
+  background: #090d16;
 }
 
 .vs-nombre {
@@ -656,7 +612,6 @@ button:disabled {
   animation: aparecerNombre 0.6s ease-out;
 }
 
-/* Línea divisoria en forma de rayo */
 .vs-rayo-division {
   position: absolute;
   top: 50%;
@@ -669,7 +624,6 @@ button:disabled {
   box-shadow: 0 0 15px #3b82f6, 0 0 30px #60a5fa;
 }
 
-/* Círculo central con el texto VS */
 .vs-texto-central {
   position: absolute;
   top: 50%;
