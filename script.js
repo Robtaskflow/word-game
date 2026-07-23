@@ -96,23 +96,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // ----- SISTEMA DE VIDAS (3 corazones = 6 unidades de medio corazón) -----
 
+  function obtenerMsTiempo(tiempo) {
+    if (!tiempo) return null
+    if (typeof tiempo === 'number') return tiempo
+    if (typeof tiempo.toMillis === 'function') return tiempo.toMillis()
+    if (tiempo.seconds) return tiempo.seconds * 1000
+    return Number(tiempo) || null
+  }
+
   function gestionarRecargaVidas() {
     if (!usuarioActual) return
 
     const VIDAS_MAXIMAS = 6
-    const TIEMPO_RECARGA_MS = 30 * 60 * 1000 // 30 minutos por cada medio corazón
+    const TIEMPO_RECARGA_MS = 30 * 60 * 1000 // 30 minutos por medio corazón
     let vidasActuales = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
-    let ultimoTiempo = usuarioActual.tiempoUltimaPerdida
+    let ultimoMs = obtenerMsTiempo(usuarioActual.tiempoUltimaPerdida)
 
-    if (vidasActuales < VIDAS_MAXIMAS && ultimoTiempo) {
+    if (vidasActuales < VIDAS_MAXIMAS && ultimoMs) {
       const ahora = Date.now()
-      const ultimoMs = ultimoTiempo.toMillis ? ultimoTiempo.toMillis() : ultimoTiempo
       const tiempoPasado = ahora - ultimoMs
       const mediasRecuperadas = Math.floor(tiempoPasado / TIEMPO_RECARGA_MS)
 
       if (mediasRecuperadas > 0) {
         vidasActuales = Math.min(VIDAS_MAXIMAS, vidasActuales + mediasRecuperadas)
         usuarioActual.vidas = vidasActuales
+        
+        // Desplazamos el marcador de tiempo el equivalente exacto a las vidas recuperadas
         usuarioActual.tiempoUltimaPerdida = ultimoMs + (mediasRecuperadas * TIEMPO_RECARGA_MS)
 
         if (vidasActuales >= VIDAS_MAXIMAS) {
@@ -138,14 +147,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('corazon2').textContent = vidas >= 4 ? '❤️' : vidas >= 3 ? '💔' : '🖤'
     document.getElementById('corazon3').textContent = vidas >= 6 ? '❤️' : vidas >= 5 ? '💔' : '🖤'
 
-    // Cuenta atrás exacta de 30 minutos para el siguiente medio corazón
+    // Cuenta atrás exacta de 30 minutos
     const tiempoEl = document.getElementById('tiempoRecargaVida')
     if (vidas >= 6) {
       tiempoEl.textContent = ''
     } else {
-      const ultimoTiempo = usuarioActual.tiempoUltimaPerdida
-      if (ultimoTiempo) {
-        const ultimoMs = ultimoTiempo.toMillis ? ultimoTiempo.toMillis() : ultimoTiempo
+      let ultimoMs = obtenerMsTiempo(usuarioActual.tiempoUltimaPerdida)
+      if (ultimoMs) {
         const TIEMPO_RECARGA_MS = 30 * 60 * 1000
         const msTranscurridos = (Date.now() - ultimoMs) % TIEMPO_RECARGA_MS
         const msRestantes = TIEMPO_RECARGA_MS - msTranscurridos
@@ -160,21 +168,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Intervalo solo para actualizar el reloj visual en pantalla cada segundo sin bloquear el juego
+  // Intervalo seguro para actualizar el reloj visual segundo a segundo y comprobar si se recarga la vida
   setInterval(function() {
     if (usuarioActual && usuarioActual.vidas < 6) {
-      // Comprobamos si ya tocó recargar de forma silenciosa
-      const VIDAS_MAXIMAS = 6
-      const TIEMPO_RECARGA_MS = 30 * 60 * 1000
-      let ultimoTiempo = usuarioActual.tiempoUltimaPerdida
-      if (ultimoTiempo) {
-        const ultimoMs = ultimoTiempo.toMillis ? ultimoTiempo.toMillis() : ultimoTiempo
-        if (Date.now() - ultimoMs >= TIEMPO_RECARGA_MS) {
-          gestionarRecargaVidas()
-        } else {
-          actualizarInterfazVidas()
-        }
-      }
+      gestionarRecargaVidas()
     }
   }, 1000)
 
@@ -188,7 +185,8 @@ document.addEventListener('DOMContentLoaded', function() {
       return false
     }
 
-    if (vidasActuales === 6) {
+    // Si estaba al máximo, inicializamos la marca de tiempo exacta de la pérdida
+    if (vidasActuales === 6 || !usuarioActual.tiempoUltimaPerdida) {
       usuarioActual.tiempoUltimaPerdida = Date.now()
     }
 
@@ -281,6 +279,18 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaMenu').style.display = 'none'
     document.getElementById('pantallaInicio').style.display = 'flex'
     document.getElementById('nombreEnPartida').textContent = usuarioActual ? usuarioActual.nombreMostrar : '—'
+    
+    // Habilitar el botón de unirse por si se había deshabilitado antes
+    const btnUnirseEl = document.getElementById('btnUnirse')
+    if (btnUnirseEl) btnUnirseEl.disabled = false
+  })
+
+  // Botón de buscar partida rápida
+  document.getElementById('btnUnirse').addEventListener('click', function() {
+    miNombre = usuarioActual ? usuarioActual.nombreMostrar : '—'
+    socket.emit('unirse', miNombre)
+    document.getElementById('textoEspera').style.display = 'block'
+    document.getElementById('btnUnirse').disabled = true
   })
 
   document.getElementById('btnVsCOM').addEventListener('click', function() {
@@ -397,7 +407,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaMenu').style.display = 'flex'
   })
 
-  // ----- PARTIDA RÁPIDA -----
+  // ----- PARTIDA RÁPIDA SOCKETS -----
 
   socket.on('esperando', function() {
     console.log('Esperando a otro jugador...')
@@ -658,7 +668,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
-      .statechange = function() { console.log('Service Worker registrado correctamente') }
+      .then(function() { console.log('Service Worker registrado correctamente') })
+      .catch(function(error) { console.log('Error SW:', error) })
   }
 
 })
