@@ -15,6 +15,9 @@ const servidor = http.createServer(app)
 // Conectamos Socket.io a ese servidor
 const io = new Server(servidor)
 
+// Inicializamos Stripe con tu clave secreta (reemplaza con tu secret key real de Stripe)
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
 // Servimos los archivos de la carpeta actual y de public
 app.use(express.static(__dirname))
 app.use(express.static(__dirname + '/public'))
@@ -71,7 +74,7 @@ io.on('connection', function(socket) {
     }
   })
 
-  socket.on('responder', function(respuesta) {
+  socket.on('responder', function(datos) {
     const sala = socket.sala
     if (!sala || !partidas[sala]) return
 
@@ -79,19 +82,54 @@ io.on('connection', function(socket) {
     if (partida.primerEnResponder) return
 
     partida.primerEnResponder = socket.id
-    partida.respuestasRonda[socket.id] = respuesta
+    
+    // Soportamos tanto si envían un objeto como si mandaban texto plano antes
+    const respuestaTexto = typeof datos === 'object' ? datos.respuesta : datos
+    partida.respuestasRonda[socket.id] = respuestaTexto
 
     if (partida.temporizador) {
       clearTimeout(partida.temporizador)
     }
 
-    resolverRonda(sala, respuesta, socket.id)
+    resolverRonda(sala, respuestaTexto, socket.id)
   })
 
   socket.on('listoSiguienteRonda', function() {
     const sala = socket.sala
     if (!sala || !partidas[sala]) return
     iniciarRonda(sala)
+  })
+
+  // ----- PASARELA DE PAGO STRIPE (1,25 €) -----
+  socket.on('comprarAyuda', async (datos) => {
+    const { tipoAyuda, userId } = datos
+    
+    let nombreProducto = 'Pista'
+    if (tipoAyuda === 'tiempo') nombreProducto = 'Cegar Rival'
+    if (tipoAyuda === 'fantasma') nombreProducto = 'Fantasma'
+
+    try {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: `1x ${nombreProducto} - Word Game`,
+            },
+            unit_amount: 125, // 125 céntimos de euro (1,25 €)
+          },
+          quantity: 1,
+        }],
+        mode: 'payment',
+        success_url: `https://tu-dominio.com/index.html?pago=exito&tipo=${tipoAyuda}&user=${userId}`,
+        cancel_url: `https://tu-dominio.com/index.html?pago=cancelado`,
+      })
+
+      socket.emit('redirigirPago', session.url)
+    } catch (error) {
+      console.error('Error al crear la sesión de pago:', error)
+    }
   })
 
   socket.on('disconnect', function() {
@@ -218,40 +256,3 @@ function resolverRonda(sala, respuesta, idJugador) {
 servidor.listen(process.env.PORT || 3000, function() {
   console.log('Servidor escuchando en el puerto ' + (process.env.PORT || 3000))
 })
-
-// pago en juego
-const stripe = require('stripe')('TU_CLAVE_SECRETA_DE_STRIPE'); // Tu secret key del panel de Stripe
-
-// Endpoint o evento de Socket.io para crear el pago de 0,99 €
-socket.on('comprarAyuda', async (datos) => {
-  const { tipoAyuda, userId } = datos;
-  
-  let nombreProducto = 'Pista';
-  if (tipoAyuda === 'tiempo') nombreProducto = 'Cegar Rival';
-  if (tipoAyuda === 'fantasma') nombreProducto = 'Fantasma';
-
-  try {
-    // Creamos una sesión de pago en Stripe por 0.99 EUR
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [{
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: `1x ${nombreProducto} - Word Game`,
-          },
-          unit_amount: 125, // 1,25 céntimos de euro (1,25 €)
-        },
-        quantity: 1,
-      }],
-      mode: 'payment',
-      success_url: `https://tu-dominio.com/juego.html?pago=exito&tipo=${tipoAyuda}&user=${userId}`,
-      cancel_url: `https://tu-dominio.com/juego.html?pago=cancelado`,
-    });
-
-    // Enviamos la URL de Stripe al cliente para redirigirlo
-    socket.emit('redirigirPago', session.url);
-  } catch (error) {
-    console.error('Error al crear la sesión de pago:', error);
-  }
-});
