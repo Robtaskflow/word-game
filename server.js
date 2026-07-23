@@ -15,7 +15,7 @@ const servidor = http.createServer(app)
 // Conectamos Socket.io a ese servidor
 const io = new Server(servidor)
 
-// Inicializamos Stripe con tu clave secreta (reemplaza con tu secret key real de Stripe)
+// Inicializamos Stripe con tu clave secreta de variable de entorno
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // Servimos los archivos de la carpeta actual y de public
@@ -83,7 +83,6 @@ io.on('connection', function(socket) {
 
     partida.primerEnResponder = socket.id
     
-    // Soportamos tanto si envían un objeto como si mandaban texto plano antes
     const respuestaTexto = typeof datos === 'object' ? datos.respuesta : datos
     partida.respuestasRonda[socket.id] = respuestaTexto
 
@@ -98,6 +97,14 @@ io.on('connection', function(socket) {
     const sala = socket.sala
     if (!sala || !partidas[sala]) return
     iniciarRonda(sala)
+  })
+
+  // ----- EVENTO PARA CEGAR AL RIVAL EN LA SALA -----
+  socket.on('cegarRival', function() {
+    const sala = socket.sala
+    if (!sala) return
+    // Envía la orden únicamente al rival dentro de la misma sala
+    socket.to(sala).emit('activarCegueraRival')
   })
 
   // ----- PASARELA DE PAGO STRIPE (1,25 €) -----

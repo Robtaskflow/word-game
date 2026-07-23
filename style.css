@@ -517,9 +517,12 @@ button:disabled {
   background: #2a4a8a !important;
 }
 
+/* Efecto de cegado / pixelado fuerte para ocultar la letra al rival */
 .letra-pixelada {
-  filter: blur(8px);
+  filter: blur(8px) contrast(200%);
+  opacity: 0.2;
   user-select: none;
+  pointer-events: none;
   transition: filter 0.3s ease;
 }
 

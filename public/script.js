@@ -335,15 +335,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     usuarioActual.tiempoExtra -= 1
     guardarInventarioEnFirestore()
-    cegarRivalActivo = true
 
-    const elementoLetra = document.getElementById('letra')
-    elementoLetra.classList.add('letra-pixelada')
-    setTimeout(() => {
-      elementoLetra.classList.remove('letra-pixelada')
-    }, 5000)
+    // Envía la orden al servidor para que ciegue al rival en su pantalla
+    socket.emit('cegarRival')
 
-    alert('⏱️ ¡Has cegado al rival! La letra estará pixelada durante 5 segundos.')
+    alert('⏱️ ¡Has cegado al rival! Su letra estará completamente oculta durante 5 segundos.')
   })
 
   document.getElementById('btnAyudaFantasma').addEventListener('click', function() {
