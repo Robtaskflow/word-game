@@ -36,6 +36,9 @@ let esperando = null
 // Guardamos todas las partidas activas
 let partidas = {}
 
+// Guardamos los cegamientos pendientes por sala para la siguiente ronda
+let cegosPendientes = {}
+
 // Cuando un jugador se conecta
 io.on('connection', function(socket) {
   console.log('Nuevo jugador conectado:', socket.id)
@@ -99,12 +102,11 @@ io.on('connection', function(socket) {
     iniciarRonda(sala)
   })
 
-  // ----- EVENTO PARA CEGAR AL RIVAL EN LA SALA -----
+  // ----- EVENTO PARA CEGAR AL RIVAL EN LA SIGUIENTE RONDA -----
   socket.on('cegarRival', function() {
     const sala = socket.sala
-    if (!sala) return
-    // Envía la orden únicamente al rival dentro de la misma sala
-    socket.to(sala).emit('activarCegueraRival')
+    if (!sala || !partidas[sala]) return
+    cegosPendientes[sala] = socket.id
   })
 
   // ----- PASARELA DE PAGO STRIPE (1,25 €) -----
@@ -124,7 +126,7 @@ io.on('connection', function(socket) {
             product_data: {
               name: `1x ${nombreProducto} - Word Game`,
             },
-            unit_amount: 125, // 125 céntimos de euro (1,25 €)
+            unit_amount: 125,
           },
           quantity: 1,
         }],
@@ -147,6 +149,7 @@ io.on('connection', function(socket) {
     if (socket.sala && partidas[socket.sala]) {
       socket.to(socket.sala).emit('rivalDesconectado')
       delete partidas[socket.sala]
+      delete cegosPendientes[socket.sala]
     }
 
     console.log('Jugador desconectado:', socket.id)
@@ -157,6 +160,23 @@ io.on('connection', function(socket) {
 function iniciarRonda(sala) {
   const partida = partidas[sala]
   if (!partida) return
+
+  // Si hay un cegamiento pendiente de la ronda anterior, se aplica al rival al iniciar esta
+  if (cegosPendientes[sala]) {
+    const idAtacante = cegosPendientes[sala]
+    delete cegosPendientes[sala]
+
+    io.in(sala).fetchSockets().then(sockets => {
+      sockets.forEach(s => {
+        if (s.id !== idAtacante) {
+          s.emit('activarCegueraRival')
+        }
+      })
+    }).catch(() => {
+      // Fallback por compatibilidad de versión de socket.io si fetchSockets falla
+      io.to(sala).emit('activarCegueraRival')
+    })
+  }
 
   const categoria = categorias[Math.floor(Math.random() * categorias.length)]
   const letra = letras[Math.floor(Math.random() * letras.length)]

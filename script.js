@@ -17,7 +17,6 @@ let palabraMaquinaRonda = ''
 
 // Variables de ayudas tácticas
 let fantasmaActivo = false
-let cegarRivalActivo = false
 
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -124,7 +123,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if (mediasRecuperadas > 0) {
         vidasActuales = Math.min(VIDAS_MAXIMAS, vidasActuales + mediasRecuperadas)
         usuarioActual.vidas = vidasActuales
-        
         usuarioActual.tiempoUltimaPerdida = ultimoMs + (mediasRecuperadas * TIEMPO_RECARGA_MS)
 
         if (vidasActuales >= VIDAS_MAXIMAS) {
@@ -244,7 +242,6 @@ document.addEventListener('DOMContentLoaded', function() {
       alert('Debes iniciar sesión para realizar compras.')
       return
     }
-    // Pide al servidor Node.js que cree la sesión de Stripe por 1,25 €
     socket.emit('comprarAyuda', { tipoAyuda: tipoAyuda, userId: auth.currentUser.uid })
   }
 
@@ -252,7 +249,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.location.href = urlStripe
   })
 
-  // Comprobar retorno de Stripe con pago exitoso
   const urlParams = new URLSearchParams(window.location.search)
   if (urlParams.get('pago') === 'exito') {
     const tipoComprado = urlParams.get('tipo')
@@ -336,10 +332,10 @@ document.addEventListener('DOMContentLoaded', function() {
     usuarioActual.tiempoExtra -= 1
     guardarInventarioEnFirestore()
 
-    // Envía la orden al servidor para que ciegue al rival en su pantalla
+    // Envía la orden al servidor para que el rival quede cegado en la siguiente ronda
     socket.emit('cegarRival')
 
-    alert('⏱️ ¡Has cegado al rival! Su letra estará completamente oculta durante 5 segundos.')
+    alert('⏱️ ¡Comodín activado! El rival quedará cegado al comenzar la siguiente ronda.')
   })
 
   document.getElementById('btnAyudaFantasma').addEventListener('click', function() {
@@ -353,6 +349,15 @@ document.addEventListener('DOMContentLoaded', function() {
     guardarInventarioEnFirestore()
     fantasmaActivo = true
     alert('👻 ¡Fantasma activado! Si fallas o no aciertas en esta ronda, no perderás puntos.')
+  })
+
+  // Receptor para cuando el servidor nos avisa de que el rival nos ha cegado
+  socket.on('activarCegueraRival', function() {
+    const elementoLetra = document.getElementById('letra')
+    elementoLetra.classList.add('letra-pixelada')
+    setTimeout(() => {
+      elementoLetra.classList.remove('letra-pixelada')
+    }, 5000)
   })
 
   // ----- BARRA DE USUARIO Y PERFIL -----
@@ -469,16 +474,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('categoria').textContent = categoriaActualCOM
     const elementoLetra = document.getElementById('letra')
     elementoLetra.textContent = letraActualCOM
-
-    if (cegarRivalActivo) {
-      elementoLetra.classList.add('letra-pixelada')
-      setTimeout(() => {
-        elementoLetra.classList.remove('letra-pixelada')
-      }, 5000)
-      cegarRivalActivo = false
-    } else {
-      elementoLetra.classList.remove('letra-pixelada')
-    }
 
     document.getElementById('inputRespuesta').value = ''
     document.getElementById('btnEnviar').disabled = false
@@ -598,16 +593,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const elementoLetra = document.getElementById('letra')
     elementoLetra.textContent = datos.letra
 
-    if (cegarRivalActivo) {
-      elementoLetra.classList.add('letra-pixelada')
-      setTimeout(() => {
-        elementoLetra.classList.remove('letra-pixelada')
-      }, 5000)
-      cegarRivalActivo = false
-    } else {
-      elementoLetra.classList.remove('letra-pixelada')
-    }
-
     document.getElementById('inputRespuesta').value = ''
     document.getElementById('btnEnviar').disabled = false
     document.getElementById('pantallaResultado').style.display = 'none'
@@ -617,7 +602,6 @@ document.addEventListener('DOMContentLoaded', function() {
     tiempo = 0
     document.getElementById('cronometro').textContent = '0.0'
 
-    // Control estricto de los 30 segundos también online
     intervalo = setInterval(function() {
       tiempo += 0.1
       document.getElementById('cronometro').textContent = tiempo.toFixed(1)
