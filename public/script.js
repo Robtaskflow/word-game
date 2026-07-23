@@ -168,28 +168,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Intervalo seguro para actualizar el reloj visual segundo a segundo y comprobar si se recarga la vida
-  setInterval(function() {
-    if (usuarioActual && usuarioActual.vidas < 6) {
-      gestionarRecargaVidas()
-    }
-  }, 1000)
-
-  function intentarGastarVida() {
+ function intentarGastarVida() {
     if (!usuarioActual) return false
     const vidasActuales = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
 
+    // Si tiene menos de 1 unidad (menos de medio corazón), bloqueamos
     if (vidasActuales < 1) {
       const tiempoEl = document.getElementById('tiempoRecargaVida')
-      alert('¡No tienes vidas! Espera ' + (tiempoEl.textContent || 'unos minutos') + ' para recuperar medio corazón.')
+      alert('¡No tienes suficientes vidas! Espera ' + (tiempoEl.textContent || 'unos minutos') + ' para recuperar medio corazón.')
       return false
     }
 
-    // Si estaba al máximo, inicializamos la marca de tiempo exacta de la pérdida
+    // Si estaba al máximo (6 unidades / 3 corazones completos), empezamos a contar el tiempo de recarga
     if (vidasActuales === 6 || !usuarioActual.tiempoUltimaPerdida) {
       usuarioActual.tiempoUltimaPerdida = Date.now()
     }
 
+    // Restamos exactamente 1 unidad (que equivale a MEDIO corazón)
     usuarioActual.vidas = Math.max(0, vidasActuales - 1)
 
     const usuario = auth.currentUser
