@@ -15,6 +15,10 @@ let timerCOM = null
 let usuarioYaRespondio = false
 let palabraMaquinaRonda = ''
 
+// Variables de ayudas tácticas
+let fantasmaActivo = false
+let cegarRivalActivo = false
+
 document.addEventListener('DOMContentLoaded', function() {
 
   let usuarioActual = null
@@ -85,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         const usuario = auth.currentUser
         guardarUsuario(usuario.uid, nombre, usuario.email).then(function() {
-          usuarioActual = { nombreMostrar: nombre, xp: 0, victorias: 0, derrotas: 0, partidas: 0, vidas: 6, tiempoUltimaPerdida: null }
+          usuarioActual = { nombreMostrar: nombre, xp: 0, victorias: 0, derrotas: 0, partidas: 0, vidas: 6, tiempoUltimaPerdida: null, pistas: 1, tiempoExtra: 1, fantasmas: 1 }
           mostrarBarraUsuario()
           document.getElementById('pantallaElegirNombre').style.display = 'none'
           document.getElementById('pantallaBienvenida').style.display = 'flex'
@@ -121,7 +125,6 @@ document.addEventListener('DOMContentLoaded', function() {
         vidasActuales = Math.min(VIDAS_MAXIMAS, vidasActuales + mediasRecuperadas)
         usuarioActual.vidas = vidasActuales
         
-        // Desplazamos el marcador de tiempo el equivalente exacto a las vidas recuperadas
         usuarioActual.tiempoUltimaPerdida = ultimoMs + (mediasRecuperadas * TIEMPO_RECARGA_MS)
 
         if (vidasActuales >= VIDAS_MAXIMAS) {
@@ -142,12 +145,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!usuarioActual) return
     const vidas = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
 
-    // Dibujar corazones (Lleno: ❤️, Medio/Roto: 💔, Vacío: 🖤)
     document.getElementById('corazon1').textContent = vidas >= 2 ? '❤️' : vidas >= 1 ? '💔' : '🖤'
     document.getElementById('corazon2').textContent = vidas >= 4 ? '❤️' : vidas >= 3 ? '💔' : '🖤'
     document.getElementById('corazon3').textContent = vidas >= 6 ? '❤️' : vidas >= 5 ? '💔' : '🖤'
 
-    // Cuenta atrás exacta de 30 minutos
     const tiempoEl = document.getElementById('tiempoRecargaVida')
     if (vidas >= 6) {
       tiempoEl.textContent = ''
@@ -168,23 +169,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
- function intentarGastarVida() {
+  setInterval(function() {
+    if (usuarioActual && usuarioActual.vidas < 6) {
+      gestionarRecargaVidas()
+    }
+  }, 1000)
+
+  function intentarGastarVida() {
     if (!usuarioActual) return false
     const vidasActuales = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
 
-    // Si tiene menos de 1 unidad (menos de medio corazón), bloqueamos
     if (vidasActuales < 1) {
       const tiempoEl = document.getElementById('tiempoRecargaVida')
       alert('¡No tienes suficientes vidas! Espera ' + (tiempoEl.textContent || 'unos minutos') + ' para recuperar medio corazón.')
       return false
     }
 
-    // Si estaba al máximo (6 unidades / 3 corazones completos), empezamos a contar el tiempo de recarga
     if (vidasActuales === 6 || !usuarioActual.tiempoUltimaPerdida) {
       usuarioActual.tiempoUltimaPerdida = Date.now()
     }
 
-    // Restamos exactamente 1 unidad (que equivale a MEDIO corazón)
     usuarioActual.vidas = Math.max(0, vidasActuales - 1)
 
     const usuario = auth.currentUser
@@ -203,6 +207,126 @@ document.addEventListener('DOMContentLoaded', function() {
     })
   }
 
+  // ----- GESTIÓN DE STOCK DE AYUDAS -----
+  function actualizarStockAyudas() {
+    if (!usuarioActual) return
+    document.getElementById('stockPista').textContent = usuarioActual.pistas || 0
+    document.getElementById('stockTiempo').textContent = usuarioActual.tiempoExtra || 0
+    document.getElementById('stockFantasma').textContent = usuarioActual.fantasmas || 0
+  }
+
+  function guardarInventarioEnFirestore() {
+    const usuario = auth.currentUser
+    if (usuario) {
+      db.collection('usuarios').doc(usuario.uid).update({
+        xp: usuarioActual.xp,
+        pistas: usuarioActual.pistas || 0,
+        tiempoExtra: usuarioActual.tiempoExtra || 0,
+        fantasmas: usuarioActual.fantasmas || 0
+      })
+    }
+    actualizarStockAyudas()
+  }
+
+  // ----- TIENDA Y COMPRAS -----
+  document.getElementById('btnTienda').addEventListener('click', function() {
+    document.getElementById('pantallaMenu').style.display = 'none'
+    document.getElementById('pantallaTienda').style.display = 'flex'
+  })
+
+  document.getElementById('btnVolverTienda').addEventListener('click', function() {
+    document.getElementById('pantallaTienda').style.display = 'none'
+    document.getElementById('pantallaMenu').style.display = 'flex'
+  })
+
+  document.getElementById('btnComprarPista').addEventListener('click', function() {
+    if ((usuarioActual.xp || 0) < 100) { alert('¡No tienes suficiente XP!'); return }
+    usuarioActual.xp -= 100
+    usuarioActual.pistas = (usuarioActual.pistas || 0) + 1
+    guardarInventarioEnFirestore()
+    mostrarBarraUsuario()
+    alert('¡Has comprado 1 Pista!')
+  })
+
+  document.getElementById('btnComprarTiempo').addEventListener('click', function() {
+    if ((usuarioActual.xp || 0) < 150) { alert('¡No tienes suficiente XP!'); return }
+    usuarioActual.xp -= 150
+    usuarioActual.tiempoExtra = (usuarioActual.tiempoExtra || 0) + 1
+    guardarInventarioEnFirestore()
+    mostrarBarraUsuario()
+    alert('¡Has comprado 1 Cegar Rival!')
+  })
+
+  document.getElementById('btnComprarFantasma').addEventListener('click', function() {
+    if ((usuarioActual.xp || 0) < 200) { alert('¡No tienes suficiente XP!'); return }
+    usuarioActual.xp -= 200
+    usuarioActual.fantasmas = (usuarioActual.fantasmas || 0) + 1
+    guardarInventarioEnFirestore()
+    mostrarBarraUsuario()
+    alert('¡Has comprado 1 Fantasma!')
+  })
+
+  // ----- USO DE AYUDAS EN PARTIDA -----
+
+  // 1. PISTA: Da la mitad de una palabra aleatoria con huecos (_)
+  document.getElementById('btnAyudaPista').addEventListener('click', function() {
+    if (!usuarioActual || (usuarioActual.pistas || 0) <= 0) {
+      alert('¡No te quedan pistas!'); return
+    }
+    const lista = diccionario[categoriaActualCOM] || []
+    const filtradas = lista.filter(p => p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toUpperCase() === letraActualCOM)
+    
+    if (filtradas.length > 0) {
+      const palabra = filtradas[Math.floor(Math.random() * filtradas.length)]
+      const letrasPalabra = palabra.split('')
+      let pistaParcial = ''
+      
+      letrasPalabra.forEach(letra => {
+        if (Math.random() < 0.5) {
+          pistaParcial += letra
+        } else {
+          pistaParcial += '_'
+        }
+      })
+
+      usuarioActual.pistas -= 1
+      guardarInventarioEnFirestore()
+      document.getElementById('inputRespuesta').value = pistaParcial
+      alert('💡 Pista: ' + pistaParcial + ' (Completa los huecos _)')
+    } else {
+      alert('No hay palabras disponibles para generar pista.')
+    }
+  })
+
+  // 2. CEGAR RIVAL: Oculta/pixelatea la letra durante 5 segundos
+  document.getElementById('btnAyudaTiempo').addEventListener('click', function() {
+    if (!usuarioActual || (usuarioActual.tiempoExtra || 0) <= 0) {
+      alert('¡No te quedan comodines de cegar al rival!'); return
+    }
+    usuarioActual.tiempoExtra -= 1
+    guardarInventarioEnFirestore()
+    cegarRivalActivo = true
+
+    const elementoLetra = document.getElementById('letra')
+    elementoLetra.classList.add('letra-pixelada')
+    setTimeout(() => {
+      elementoLetra.classList.remove('letra-pixelada')
+    }, 5000)
+
+    alert('⏱️ ¡Has cegado al rival! La letra estará pixelada durante 5 segundos.')
+  })
+
+  // 3. FANTASMA: Inmunidad al fallo en esta ronda
+  document.getElementById('btnAyudaFantasma').addEventListener('click', function() {
+    if (!usuarioActual || (usuarioActual.fantasmas || 0) <= 0) {
+      alert('¡No te quedan fantasmas!'); return
+    }
+    usuarioActual.fantasmas -= 1
+    guardarInventarioEnFirestore()
+    fantasmaActivo = true
+    alert('👻 ¡Fantasma activado! Si fallas o no aciertas en esta ronda, no perderás puntos.')
+  })
+
   // ----- BARRA DE USUARIO Y PERFIL -----
 
   function mostrarBarraUsuario() {
@@ -213,6 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('barraRango').textContent = rango.icono
     document.getElementById('barraXP').textContent = (usuarioActual.xp || 0) + ' XP'
     actualizarInterfazVidas()
+    actualizarStockAyudas()
   }
 
   function mostrarPerfil() {
@@ -275,12 +400,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaInicio').style.display = 'flex'
     document.getElementById('nombreEnPartida').textContent = usuarioActual ? usuarioActual.nombreMostrar : '—'
     
-    // Habilitar el botón de unirse por si se había deshabilitado antes
     const btnUnirseEl = document.getElementById('btnUnirse')
     if (btnUnirseEl) btnUnirseEl.disabled = false
   })
 
-  // Botón de buscar partida rápida
   document.getElementById('btnUnirse').addEventListener('click', function() {
     miNombre = usuarioActual ? usuarioActual.nombreMostrar : '—'
     socket.emit('unirse', miNombre)
@@ -318,7 +441,20 @@ document.addEventListener('DOMContentLoaded', function() {
     letraActualCOM = letras.charAt(Math.floor(Math.random() * letras.length))
 
     document.getElementById('categoria').textContent = categoriaActualCOM
-    document.getElementById('letra').textContent = letraActualCOM
+    const elementoLetra = document.getElementById('letra')
+    elementoLetra.textContent = letraActualCOM
+
+    // Si se activó la ceguera, pixelamos al inicio de ronda durante 5s
+    if (cegarRivalActivo) {
+      elementoLetra.classList.add('letra-pixelada')
+      setTimeout(() => {
+        elementoLetra.classList.remove('letra-pixelada')
+      }, 5000)
+      cegarRivalActivo = false // Se consume para esta ronda
+    } else {
+      elementoLetra.classList.remove('letra-pixelada')
+    }
+
     document.getElementById('inputRespuesta').value = ''
     document.getElementById('btnEnviar').disabled = false
     document.getElementById('pantallaResultado').style.display = 'none'
@@ -336,7 +472,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!usuarioYaRespondio) {
           usuarioYaRespondio = true
           palabraMaquinaRonda = '(Tiempo agotado)'
-          mostrarResultadoCOM('(Sin respuesta)', false, 0)
+          
+          // Aplicar regla de Fantasma (si está activo no resta puntos)
+          let ptsPerdidos = fantasmaActivo ? 0 : -1
+          fantasmaActivo = false // Se consume
+
+          puntosUsuarioCOM = Math.max(0, puntosUsuarioCOM + ptsPerdidos)
+          mostrarResultadoCOM('(Sin respuesta - Inmune)', false, ptsPerdidos)
         }
       }
     }, 100)
@@ -432,7 +574,20 @@ document.addEventListener('DOMContentLoaded', function() {
   socket.on('nuevaRonda', function(datos) {
     if (enModoVsCOM) return
     document.getElementById('categoria').textContent = datos.categoria
-    document.getElementById('letra').textContent = datos.letra
+    
+    const elementoLetra = document.getElementById('letra')
+    elementoLetra.textContent = datos.letra
+
+    if (cegarRivalActivo) {
+      elementoLetra.classList.add('letra-pixelada')
+      setTimeout(() => {
+        elementoLetra.classList.remove('letra-pixelada')
+      }, 5000)
+      cegarRivalActivo = false
+    } else {
+      elementoLetra.classList.remove('letra-pixelada')
+    }
+
     document.getElementById('inputRespuesta').value = ''
     document.getElementById('btnEnviar').disabled = false
     document.getElementById('pantallaResultado').style.display = 'none'
@@ -469,8 +624,11 @@ document.addEventListener('DOMContentLoaded', function() {
       if (esValida) {
         puntosUsuarioCOM += 1
       } else {
-        puntosUsuarioCOM = Math.max(0, puntosUsuarioCOM - 1)
+        // Aplicar regla de Fantasma (si está activo no resta puntos)
+        let ptsPerdidos = fantasmaActivo ? 0 : -1
+        puntosUsuarioCOM = Math.max(0, puntosUsuarioCOM + ptsPerdidos)
       }
+      fantasmaActivo = false // Se consume
 
       if (!palabraMaquinaRonda) {
         const aciertaIA = Math.random() < 0.75
@@ -487,17 +645,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
 
-      mostrarResultadoCOM(respuesta, esValida, esValida ? 1 : -1)
+      mostrarResultadoCOM(respuesta, esValida, esValida ? 1 : (fantasmaActivo ? 0 : -1))
     } else {
       document.getElementById('btnEnviar').disabled = true
-      socket.emit('responder', respuesta)
+      socket.emit('responder', { respuesta: respuesta, fantasma: fantasmaActivo })
+      fantasmaActivo = false // Se consume
     }
   }
 
   function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaResultado').style.display = 'flex'
-    document.getElementById('tituloResultado').textContent = validaUser ? '¡Punto anotado (+1)!' : 'Palabra incorrecta (-1)'
+    document.getElementById('tituloResultado').textContent = validaUser ? '¡Punto anotado (+1)!' : (ptsUser === 0 ? 'Palabra incorrecta (Inmune por Fantasma)' : 'Palabra incorrecta (-1)')
 
     const contenedor = document.getElementById('respuestasJugadores')
     contenedor.innerHTML = `

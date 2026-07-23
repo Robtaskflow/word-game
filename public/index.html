@@ -97,6 +97,11 @@
           <span class="btn-texto">VS Computadora</span>
           <span class="btn-descripcion">Pon a prueba tu velocidad</span>
         </button>
+        <button class="btn-menu" id="btnTienda">
+          <span class="btn-icono">🛒</span>
+          <span class="btn-texto">Tienda de Ayudas</span>
+          <span class="btn-descripcion">Compra pistas, cegueras y fantasmas con XP</span>
+        </button>
         <button class="btn-menu" id="btnClasificatoria">
           <span class="btn-icono">🏆</span>
           <span class="btn-texto">Clasificatoria</span>
@@ -139,10 +144,50 @@
       <div class="tarjeta">
         <p class="cronometro" id="cronometro">0.0</p>
       </div>
+
+      <!-- BOTONES DE AYUDAS TÁCTICAS -->
+      <div class="tarjeta" style="padding: 10px; display: flex; gap: 6px; justify-content: space-around;">
+        <button id="btnAyudaPista" class="btn-ayuda" title="Revela la mitad de una palabra válida">💡 Pista (<span id="stockPista">0</span>)</button>
+        <button id="btnAyudaTiempo" class="btn-ayuda" title="Ciega al rival 5s en la sig. ronda">⏱️ Cegar (<span id="stockTiempo">0</span>)</button>
+        <button id="btnAyudaFantasma" class="btn-ayuda" title="Inmunidad al fallo en esta ronda">👻 Fantasma (<span id="stockFantasma">0</span>)</button>
+      </div>
+
       <div class="tarjeta">
         <p class="etiqueta">Tu respuesta</p>
         <input type="text" id="inputRespuesta" placeholder="Escribe la palabra" />
         <button id="btnEnviar">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA TIENDA -->
+  <div class="pantalla" id="pantallaTienda" style="display:none;">
+    <button class="btn-volver" id="btnVolverTienda">← Volver</button>
+    <div class="contenedor">
+      <div class="tarjeta" style="text-align:center;">
+        <h2>🛒 Tienda de Ayudas</h2>
+        <p style="color:#a0a0b0; font-size:0.85rem; margin: 8px 0 20px 0;">Usa tus XP para comprar potenciadores tácticos</p>
+        
+        <div style="background:#0f1b35; padding:12px; border-radius:8px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div style="text-align:left;">
+            <strong>💡 Pista (Mitad palabra)</strong><br><span style="font-size:0.75rem; color:#a0a0b0;">Revela la mitad de forma aleatoria</span>
+          </div>
+          <button id="btnComprarPista" style="flex:none; padding:8px 14px; font-size:0.85rem;">Comprar (100 XP)</button>
+        </div>
+
+        <div style="background:#0f1b35; padding:12px; border-radius:8px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div style="text-align:left;">
+            <strong>⏱️ Cegar Rival (5s)</strong><br><span style="font-size:0.75rem; color:#a0a0b0;">Oculta la letra al rival al inicio</span>
+          </div>
+          <button id="btnComprarTiempo" style="flex:none; padding:8px 14px; font-size:0.85rem;">Comprar (150 XP)</button>
+        </div>
+
+        <div style="background:#0f1b35; padding:12px; border-radius:8px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+          <div style="text-align:left;">
+            <strong>👻 Fantasma (Inmunidad)</strong><br><span style="font-size:0.75rem; color:#a0a0b0;">Evita restar puntos si fallas</span>
+          </div>
+          <button id="btnComprarFantasma" style="flex:none; padding:8px 14px; font-size:0.85rem;">Comprar (200 XP)</button>
+        </div>
       </div>
     </div>
   </div>

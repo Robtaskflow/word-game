@@ -501,6 +501,28 @@ button:disabled {
   margin-left: 6px;
 }
 
+/* Botones de ayudas y efectos tácticos */
+.btn-ayuda {
+  background: #1a2e5a !important;
+  border: 1px solid #2a4a8a;
+  color: white;
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.btn-ayuda:hover {
+  background: #2a4a8a !important;
+}
+
+.letra-pixelada {
+  filter: blur(8px);
+  user-select: none;
+  transition: filter 0.3s ease;
+}
+
 /* Pantalla de perfil */
 .perfil-contenido {
   width: 100%;
