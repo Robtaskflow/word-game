@@ -424,7 +424,7 @@ button:disabled {
   font-weight: bold;
 }
 
-/* Barra de usuario */
+/* Barra de usuario superior reorganizada */
 #barraUsuario {
   position: fixed;
   top: 0;
@@ -437,6 +437,13 @@ button:disabled {
   padding: 8px 16px;
   background: rgba(22, 33, 62, 0.95);
   border-bottom: 1px solid #2a4a8a;
+}
+
+.barra-derecha-contenedor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
 }
 
 .usuario-info {
@@ -466,7 +473,7 @@ button:disabled {
   color: #a0a0b0;
 }
 
-/* Corazones en horizontal */
+/* Corazones en horizontal y contenedor derecho */
 .vidas-contenedor {
   display: flex;
   flex-direction: row;
@@ -478,6 +485,11 @@ button:disabled {
   padding: 6px 12px;
 }
 
+.corazones-fila {
+  display: flex;
+  gap: 2px;
+}
+
 .vidas-contenedor span {
   font-size: 1.1rem;
   line-height: 1;
@@ -486,7 +498,7 @@ button:disabled {
 .tiempo-recarga {
   font-size: 0.65rem !important;
   color: #a0a0b0 !important;
-  margin-left: 4px;
+  margin-left: 6px;
 }
 
 /* Pantalla de perfil */

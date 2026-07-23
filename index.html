@@ -9,16 +9,24 @@
 <body>
   <!-- BARRA DE USUARIO -->
   <div id="barraUsuario" style="display:none;">
-    <div class="usuario-info" id="btnVerPerfil">
-      <span id="barraRango">🥉</span>
-      <span id="barraNombre">—</span>
-      <span id="barraXP" class="barra-xp-texto">0 XP</span>
-    </div>
-    <div class="vidas-contenedor">
-      <span id="corazon1">❤️</span>
-      <span id="corazon2">❤️</span>
-      <span id="corazon3">❤️</span>
-      <span id="tiempoRecargaVida" class="tiempo-recarga"></span>
+    <!-- Espacio izquierdo libre para el botón de volver -->
+    <div></div>
+
+    <!-- Bloque derecho: Vidas (corazones) y Perfil agrupados -->
+    <div class="barra-derecha-contenedor">
+      <div class="vidas-contenedor" id="barraVidas">
+        <div class="corazones-fila">
+          <span id="corazon1">❤️</span>
+          <span id="corazon2">❤️</span>
+          <span id="corazon3">❤️</span>
+        </div>
+        <span id="tiempoRecargaVida" class="tiempo-recarga"></span>
+      </div>
+      <div class="usuario-info" id="btnVerPerfil">
+        <span id="barraRango">🥉</span>
+        <span id="barraNombre">—</span>
+        <span id="barraXP" class="barra-xp-texto">0 XP</span>
+      </div>
     </div>
   </div>
 

@@ -94,13 +94,13 @@ document.addEventListener('DOMContentLoaded', function() {
     })
   })
 
-  // ----- SISTEMA DE VIDAS -----
+  // ----- SISTEMA DE VIDAS (3 corazones = 6 unidades de medio corazón) -----
 
   function gestionarRecargaVidas() {
     if (!usuarioActual) return
 
     const VIDAS_MAXIMAS = 6
-    const TIEMPO_RECARGA_MS = 30 * 60 * 1000 // 30 minutos por medio corazón
+    const TIEMPO_RECARGA_MS = 30 * 60 * 1000 // 30 minutos por cada medio corazón
     let vidasActuales = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
     let ultimoTiempo = usuarioActual.tiempoUltimaPerdida
 
@@ -113,6 +113,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (mediasRecuperadas > 0) {
         vidasActuales = Math.min(VIDAS_MAXIMAS, vidasActuales + mediasRecuperadas)
         usuarioActual.vidas = vidasActuales
+
+        // Descontamos del tiempo total los intervalos ya sumados para que el temporizador siga corriendo fluido
+        usuarioActual.tiempoUltimaPerdida = ultimoMs + (mediasRecuperadas * TIEMPO_RECARGA_MS)
 
         if (vidasActuales >= VIDAS_MAXIMAS) {
           usuarioActual.tiempoUltimaPerdida = null
@@ -132,11 +135,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!usuarioActual) return
     const vidas = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
 
-    // Corazon 1: lleno si vidas >= 2, medio si vidas >= 1, vacío si vidas < 1
+    // Corazón 1
     document.getElementById('corazon1').textContent = vidas >= 2 ? '❤️' : vidas >= 1 ? '💔' : '🖤'
-    // Corazon 2: lleno si vidas >= 4, medio si vidas >= 3, vacío si vidas < 3
+    // Corazón 2
     document.getElementById('corazon2').textContent = vidas >= 4 ? '❤️' : vidas >= 3 ? '💔' : '🖤'
-    // Corazon 3: lleno si vidas >= 6, medio si vidas >= 5, vacío si vidas < 5
+    // Corazón 3
     document.getElementById('corazon3').textContent = vidas >= 6 ? '❤️' : vidas >= 5 ? '💔' : '🖤'
 
     // Mostrar tiempo de recarga si no están al máximo
@@ -151,13 +154,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const minutos = Math.floor(msRestantes / 60000)
         const segundos = Math.floor((msRestantes % 60000) / 1000)
         tiempoEl.textContent = minutos + 'm ' + segundos + 's'
+      } else {
+        tiempoEl.textContent = 'Recargando...'
       }
     }
   }
 
-  // Actualizamos el contador de recarga cada segundo
+  // Actualizamos el contador de recarga cada segundo en pantalla y comprobamos recargas automáticas
   setInterval(function() {
-    if (usuarioActual) actualizarInterfazVidas()
+    if (usuarioActual) {
+      gestionarRecargaVidas()
+    }
   }, 1000)
 
   function intentarGastarVida() {
@@ -166,15 +173,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (vidasActuales < 1) {
       const tiempoEl = document.getElementById('tiempoRecargaVida')
-      alert('¡No tienes vidas! Espera ' + (tiempoEl.textContent || 'unos minutos') + ' para recuperar media vida.')
+      alert('¡No tienes vidas! Espera ' + (tiempoEl.textContent || 'unos minutos') + ' para recuperar medio corazón.')
       return false
     }
 
-    usuarioActual.vidas = Math.max(0, vidasActuales - 1)
-
-    if (vidasActuales >= 6) {
+    // Si estaba al máximo (6), guardamos el tiempo exacto en el que empieza a gastar el primer medio corazón
+    if (vidasActuales === 6) {
       usuarioActual.tiempoUltimaPerdida = Date.now()
     }
+
+    // Gastamos 1 unidad (equivalente a medio corazón, ya que el máximo son 6 unidades para 3 corazones)
+    usuarioActual.vidas = Math.max(0, vidasActuales - 1)
 
     const usuario = auth.currentUser
     if (usuario) {
@@ -256,6 +265,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // ----- MENÚ PRINCIPAL -----
 
   document.getElementById('btnPartidaRapida').addEventListener('click', function() {
+    gestionarRecargaVidas()
+    if (!intentarGastarVida()) return
+
     enModoVsCOM = false
     document.getElementById('pantallaMenu').style.display = 'none'
     document.getElementById('pantallaInicio').style.display = 'flex'
@@ -377,16 +389,6 @@ document.addEventListener('DOMContentLoaded', function() {
   })
 
   // ----- PARTIDA RÁPIDA -----
-
-  document.getElementById('btnUnirse').addEventListener('click', function() {
-    gestionarRecargaVidas()
-    if (!intentarGastarVida()) return
-
-    miNombre = usuarioActual ? usuarioActual.nombreMostrar : '—'
-    socket.emit('unirse', miNombre)
-    document.getElementById('textoEspera').style.display = 'block'
-    document.getElementById('btnUnirse').disabled = true
-  })
 
   socket.on('esperando', function() {
     console.log('Esperando a otro jugador...')
@@ -597,16 +599,6 @@ document.addEventListener('DOMContentLoaded', function() {
       })
       const cantidad = esGanador ? 50 : -10
 
-      // Si pierde restamos medio corazón
-      if (!esGanador) {
-        perderMediaVida(usuario.uid).then(function() {
-          return obtenerUsuario(usuario.uid)
-        }).then(function(doc) {
-          usuarioActual = doc.data()
-          actualizarInterfazVidas()
-        })
-      }
-
       actualizarXP(usuario.uid, cantidad, !!esGanador).then(function() {
         return obtenerUsuario(usuario.uid)
       }).then(function(doc) {
@@ -661,4 +653,4 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(function(error) { console.log('Error SW:', error) })
   }
 
-}) // cierre del DOMContentLoaded
+})
