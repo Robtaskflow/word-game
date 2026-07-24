@@ -828,10 +828,51 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   })
 
-  socket.on('rivalDesconectado', function() {
+ socket.on('victoriaRival', function(datos) {
     if (enModoVsCOM) return
-    alert('Tu rival se ha desconectado. La partida ha terminado.')
-    location.reload()
+    clearInterval(intervalo)
+
+    // Ocultamos todas las pantallas de juego
+    document.getElementById('pantallaJuego').style.display = 'none'
+    document.getElementById('pantallaResultado').style.display = 'none'
+
+    // Actualizamos XP por victoria
+    const usuario = auth.currentUser
+    if (usuario && usuarioActual) {
+      actualizarXP(usuario.uid, 50, true).then(function() {
+        return obtenerUsuario(usuario.uid)
+      }).then(function(doc) {
+        usuarioActual = doc.data()
+        mostrarBarraUsuario()
+      })
+    }
+
+    // Mostramos la pantalla de victoria
+    document.getElementById('pantallaVictoria').style.display = 'flex'
+    document.getElementById('nombreGanador').textContent = datos.nombreGanador
+
+    const contenedor = document.getElementById('puntosFinales')
+    contenedor.innerHTML = `
+      <div class="fila-puntos-final">
+        <span class="nombre">Tu rival se desconectó</span>
+        <span class="puntos">Victoria por abandono</span>
+      </div>
+    `
+
+    let cuenta = 5
+    const textoContador = document.createElement('p')
+    textoContador.style.cssText = 'text-align:center; color:#1a2e5a; margin-top:16px; font-size:0.9rem;'
+    textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
+    document.querySelector('.tarjeta-victoria').appendChild(textoContador)
+
+    const contador = setInterval(function() {
+      cuenta -= 1
+      textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
+      if (cuenta <= 0) {
+        clearInterval(contador)
+        location.reload()
+      }
+    }, 1000)
   })
 
   function finalizarPartidaCOM() {

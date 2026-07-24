@@ -146,7 +146,28 @@ io.on('connection', function(socket) {
     }
 
     if (socket.sala && partidas[socket.sala]) {
-      socket.to(socket.sala).emit('rivalDesconectado')
+      const partida = partidas[socket.sala]
+
+      // Buscamos al rival (el que no se desconectó)
+      const rival = partida.jugadores.find(function(j) {
+        return j.id !== socket.id
+      })
+
+      if (rival) {
+        // Damos la victoria al rival
+        socket.to(socket.sala).emit('victoriaRival', {
+          mensaje: 'Tu rival se ha desconectado. ¡Ganas la partida!',
+          nombreGanador: rival.nombre,
+          jugadores: partida.jugadores.map(function(j) {
+            return {
+              nombre: j.nombre,
+              puntos: j.id === rival.id ? 5 : j.puntos,
+              respuesta: null
+            }
+          })
+        })
+      }
+
       delete partidas[socket.sala]
       delete cegosPendientes[socket.sala]
     }
