@@ -322,22 +322,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   })
 
-  document.getElementById('btnAyudaTiempo').addEventListener('click', function() {
+ document.getElementById('btnAyudaTiempo').addEventListener('click', function() {
     if (!usuarioActual) return
     if (usuarioActual.tiempoExtra === undefined) usuarioActual.tiempoExtra = 3
 
     if (usuarioActual.tiempoExtra <= 0) {
-      alert('¡No te quedan comodines de cegar al rival!'); return
+      alert('¡No te quedan bloqueos!'); return
     }
     usuarioActual.tiempoExtra -= 1
     guardarInventarioEnFirestore()
 
-    // Envía la orden al servidor para que el rival quede cegado en la siguiente ronda
     socket.emit('cegarRival')
-
-    alert('⏱️ ¡Comodín activado! El rival quedará cegado al comenzar la siguiente ronda.')
+    alert('🔒 ¡Bloqueo activado! El rival no podrá escribir al comenzar la siguiente ronda.')
   })
-
   document.getElementById('btnAyudaFantasma').addEventListener('click', function() {
     if (!usuarioActual) return
     if (usuarioActual.fantasmas === undefined) usuarioActual.fantasmas = 3
@@ -352,14 +349,32 @@ document.addEventListener('DOMContentLoaded', function() {
   })
 
   // Receptor para cuando el servidor nos avisa de que el rival nos ha cegado
-  socket.on('activarCegueraRival', function() {
-    const elementoLetra = document.getElementById('letra')
-    elementoLetra.classList.add('letra-pixelada')
-    setTimeout(() => {
-      elementoLetra.classList.remove('letra-pixelada')
-    }, 5000)
-  })
+ socket.on('activarCegueraRival', function(datos) {
+    const cartel = document.getElementById('cartelBloqueado')
+    const nombreBloqueador = datos && datos.nombreBloqueador ? datos.nombreBloqueador : 'tu rival'
 
+    document.getElementById('nombreBloqueador').textContent = nombreBloqueador
+    cartel.style.display = 'flex'
+
+    const input = document.getElementById('inputRespuesta')
+    const btnEnv = document.getElementById('btnEnviar')
+    if (input) input.disabled = true
+    if (btnEnv) btnEnv.disabled = true
+
+    let cuenta = 5
+    const cuentaEl = document.getElementById('cuentaAtrasBloqueo')
+
+    const contador = setInterval(function() {
+      cuenta -= 1
+      cuentaEl.textContent = 'Se desbloqueará en ' + cuenta + ' segundos...'
+      if (cuenta <= 0) {
+        clearInterval(contador)
+        cartel.style.display = 'none'
+        if (input) input.disabled = false
+        if (btnEnv) btnEnv.disabled = false
+      }
+    }, 1000)
+  })
   // ----- BARRA DE USUARIO Y PERFIL -----
 
   function mostrarBarraUsuario() {

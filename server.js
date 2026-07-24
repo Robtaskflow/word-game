@@ -103,12 +103,11 @@ io.on('connection', function(socket) {
   })
 
   // ----- EVENTO PARA CEGAR AL RIVAL EN LA SIGUIENTE RONDA -----
-  socket.on('cegarRival', function() {
+ socket.on('cegarRival', function() {
     const sala = socket.sala
     if (!sala || !partidas[sala]) return
-    cegosPendientes[sala] = socket.id
+    cegosPendientes[sala] = { idAtacante: socket.id, nombreAtacante: socket.nombre }
   })
-
   // ----- PASARELA DE PAGO STRIPE (1,25 €) -----
   socket.on('comprarAyuda', async (datos) => {
     const { tipoAyuda, userId } = datos
@@ -162,19 +161,18 @@ function iniciarRonda(sala) {
   if (!partida) return
 
   // Si hay un cegamiento pendiente de la ronda anterior, se aplica al rival al iniciar esta
-  if (cegosPendientes[sala]) {
-    const idAtacante = cegosPendientes[sala]
+ if (cegosPendientes[sala]) {
+    const { idAtacante, nombreAtacante } = cegosPendientes[sala]
     delete cegosPendientes[sala]
 
-    io.in(sala).fetchSockets().then(sockets => {
-      sockets.forEach(s => {
+    io.in(sala).fetchSockets().then(function(sockets) {
+      sockets.forEach(function(s) {
         if (s.id !== idAtacante) {
-          s.emit('activarCegueraRival')
+          s.emit('activarCegueraRival', { nombreBloqueador: nombreAtacante })
         }
       })
-    }).catch(() => {
-      // Fallback por compatibilidad de versión de socket.io si fetchSockets falla
-      io.to(sala).emit('activarCegueraRival')
+    }).catch(function() {
+      io.to(sala).emit('activarCegueraRival', { nombreBloqueador: nombreAtacante })
     })
   }
 

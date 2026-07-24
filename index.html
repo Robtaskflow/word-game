@@ -9,10 +9,7 @@
 <body>
   <!-- BARRA DE USUARIO -->
   <div id="barraUsuario" style="display:none;">
-    <!-- Espacio izquierdo libre para el botón de volver -->
     <div></div>
-
-    <!-- Bloque derecho: Vidas (corazones) y Perfil agrupados -->
     <div class="barra-derecha-contenedor">
       <div class="vidas-contenedor" id="barraVidas">
         <div class="corazones-fila">
@@ -27,6 +24,16 @@
         <span id="barraNombre">—</span>
         <span id="barraXP" class="barra-xp-texto">0 XP</span>
       </div>
+    </div>
+  </div>
+
+  <!-- CARTEL DE BLOQUEADO -->
+  <div id="cartelBloqueado" style="display:none; position:fixed; top:0; left:0; width:100%; height:100vh; background:rgba(0,0,0,0.85); z-index:9999; flex-direction:column; justify-content:center; align-items:center;">
+    <div style="text-align:center; padding:30px;">
+      <div style="font-size:4rem;">🔒</div>
+      <h2 style="color:#e94560; margin:16px 0 8px 0;">¡Has sido bloqueado!</h2>
+      <p style="color:#a0a0b0; font-size:1rem;">por <span id="nombreBloqueador" style="color:white; font-weight:bold;">—</span></p>
+      <p id="cuentaAtrasBloqueo" style="color:#a0a0b0; font-size:0.9rem; margin-top:12px;">Se desbloqueará en 5 segundos...</p>
     </div>
   </div>
 
@@ -100,7 +107,7 @@
         <button class="btn-menu" id="btnTienda">
           <span class="btn-icono">🛒</span>
           <span class="btn-texto">Tienda de Ayudas</span>
-          <span class="btn-descripcion">Compra pistas, cegueras y fantasmas</span>
+          <span class="btn-descripcion">Compra pistas, bloqueos y fantasmas</span>
         </button>
         <button class="btn-menu" id="btnClasificatoria">
           <span class="btn-icono">🏆</span>
@@ -148,7 +155,7 @@
       <!-- BOTONES DE AYUDAS TÁCTICAS -->
       <div class="tarjeta" style="padding: 10px; display: flex; gap: 6px; justify-content: space-around;">
         <button id="btnAyudaPista" class="btn-ayuda" title="Revela la mitad de una palabra válida">💡 Pista (<span id="stockPista">0</span>)</button>
-        <button id="btnAyudaTiempo" class="btn-ayuda" title="Ciega al rival 5s en la sig. ronda">⏱️ Cegar (<span id="stockTiempo">0</span>)</button>
+        <button id="btnAyudaTiempo" class="btn-ayuda" title="Bloquea al rival 5s en la sig. ronda">🔒 Bloquear (<span id="stockTiempo">0</span>)</button>
         <button id="btnAyudaFantasma" class="btn-ayuda" title="Inmunidad al fallo en esta ronda">👻 Fantasma (<span id="stockFantasma">0</span>)</button>
       </div>
 
@@ -177,7 +184,7 @@
 
         <div style="background:#0f1b35; padding:12px; border-radius:8px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
           <div style="text-align:left;">
-            <strong>⏱️ Cegar Rival (5s)</strong><br><span style="font-size:0.75rem; color:#a0a0b0;">Oculta la letra al rival al inicio</span>
+            <strong>🔒 Bloquear Rival (5s)</strong><br><span style="font-size:0.75rem; color:#a0a0b0;">Bloquea al rival al inicio de la siguiente ronda</span>
           </div>
           <button id="btnComprarTiempo" style="flex:none; padding:8px 14px; font-size:0.9rem;">1,25 €</button>
         </div>
@@ -295,6 +302,20 @@
         </div>
       </div>
       <button id="btnCerrarSesion" style="margin-top:20px; background:#333;">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA VERSUS -->
+  <div class="pantalla" id="pantallaVersus" style="display:none;">
+    <div class="vs-contenedor">
+      <div class="vs-mitad vs-arriba">
+        <h2 id="vsNombre1" class="vs-nombre">—</h2>
+      </div>
+      <div class="vs-rayo-division"></div>
+      <div class="vs-mitad vs-abajo">
+        <h2 id="vsNombre2" class="vs-nombre">—</h2>
+      </div>
+      <div class="vs-texto-central">VS</div>
     </div>
   </div>
 
