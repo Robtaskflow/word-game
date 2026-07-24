@@ -424,7 +424,6 @@ button:disabled {
   font-weight: bold;
 }
 
-/* Barra de usuario superior reorganizada */
 #barraUsuario {
   position: fixed;
   top: 0;
@@ -473,7 +472,6 @@ button:disabled {
   color: #a0a0b0;
 }
 
-/* Corazones en horizontal y contenedor derecho */
 .vidas-contenedor {
   display: flex;
   flex-direction: row;
@@ -501,7 +499,6 @@ button:disabled {
   margin-left: 6px;
 }
 
-/* Botones de ayudas y efectos tácticos */
 .btn-ayuda {
   background: #1a2e5a !important;
   border: 1px solid #2a4a8a;
@@ -517,7 +514,6 @@ button:disabled {
   background: #2a4a8a !important;
 }
 
-/* Efecto de cegado / pixelado fuerte para ocultar la letra al rival */
 .letra-pixelada {
   filter: blur(8px) contrast(200%);
   opacity: 0.2;
@@ -526,7 +522,6 @@ button:disabled {
   transition: filter 0.3s ease;
 }
 
-/* Pantalla de perfil */
 .perfil-contenido {
   width: 100%;
   max-width: 400px;
@@ -599,7 +594,6 @@ button:disabled {
 .stat-victorias .stat-numero { color: #2ecc71; }
 .stat-derrotas .stat-numero { color: #e94560; }
 
-/* Pantalla Versus */
 #pantallaVersus {
   position: fixed;
   top: 0;
@@ -690,4 +684,55 @@ button:disabled {
 @keyframes aparecerNombre {
   from { opacity: 0; transform: scale(0.8); }
   to { opacity: 1; transform: scale(1); }
+}
+
+/* Ranking */
+.ranking-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #2a2a4a;
+}
+
+.ranking-fila:last-child {
+  border-bottom: none;
+}
+
+.ranking-posicion {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #a0a0b0;
+  width: 30px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.ranking-posicion.oro { color: #FFD700; }
+.ranking-posicion.plata { color: #C0C0C0; }
+.ranking-posicion.bronce { color: #CD7F32; }
+
+.ranking-nombre {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: bold;
+}
+
+.ranking-xp {
+  font-size: 0.85rem;
+  color: #a0a0b0;
+}
+
+.ranking-rango {
+  font-size: 1.1rem;
+}
+
+.ranking-mi-posicion {
+  background: linear-gradient(135deg, #1a2e5a, #2a4a8a) !important;
+  border: 1px solid #3b82f6 !important;
+}
+
+.ranking-yo {
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 8px;
 }

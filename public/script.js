@@ -531,10 +531,96 @@ document.addEventListener('DOMContentLoaded', function() {
     mostrarResultadoCOM('(La IA respondió primero)', false, 0)
   }
 
-  document.getElementById('btnClasificatoria').addEventListener('click', function() {
+ document.getElementById('btnClasificatoria').addEventListener('click', function() {
     document.getElementById('pantallaMenu').style.display = 'none'
     document.getElementById('pantallaClasificatoria').style.display = 'flex'
+    cargarRanking()
   })
+
+  function cargarRanking() {
+    document.getElementById('rankingCargando').style.display = 'block'
+    document.getElementById('listaRanking').innerHTML = ''
+    document.getElementById('miPosicionContenedor').style.display = 'none'
+
+    // Cargamos los 100 jugadores con más XP
+    db.collection('usuarios')
+      .orderBy('xp', 'desc')
+      .limit(100)
+      .get()
+      .then(function(snapshot) {
+        document.getElementById('rankingCargando').style.display = 'none'
+        const lista = document.getElementById('listaRanking')
+        lista.innerHTML = ''
+
+        let miPosicionEnTop100 = false
+        let posicion = 1
+
+        snapshot.forEach(function(doc) {
+          const datos = doc.data()
+          const esYo = usuarioActual && datos.nombreUsuario === usuarioActual.nombreUsuario
+          const rango = calcularRango(datos.xp || 0)
+
+          if (esYo) miPosicionEnTop100 = true
+
+          const fila = document.createElement('div')
+          fila.className = 'ranking-fila' + (esYo ? ' ranking-yo' : '')
+
+          let clasePosicion = 'ranking-posicion'
+          if (posicion === 1) clasePosicion += ' oro'
+          else if (posicion === 2) clasePosicion += ' plata'
+          else if (posicion === 3) clasePosicion += ' bronce'
+
+          let medallaTexto = posicion
+          if (posicion === 1) medallaTexto = '🥇'
+          else if (posicion === 2) medallaTexto = '🥈'
+          else if (posicion === 3) medallaTexto = '🥉'
+
+          fila.innerHTML = `
+            <span class="${clasePosicion}">${medallaTexto}</span>
+            <span class="ranking-rango">${rango.icono}</span>
+            <span class="ranking-nombre">${datos.nombreMostrar || '—'}${esYo ? ' (tú)' : ''}</span>
+            <span class="ranking-xp">${datos.xp || 0} XP</span>
+          `
+          lista.appendChild(fila)
+          posicion++
+        })
+
+        // Si el usuario no está en el top 100, buscamos su posición
+        if (!miPosicionEnTop100 && usuarioActual) {
+          buscarMiPosicion()
+        }
+      })
+      .catch(function(error) {
+        console.log('Error cargando ranking:', error)
+        document.getElementById('rankingCargando').textContent = 'Error al cargar el ranking.'
+      })
+  }
+
+  function buscarMiPosicion() {
+    if (!usuarioActual) return
+
+    // Contamos cuántos usuarios tienen más XP que yo
+    db.collection('usuarios')
+      .where('xp', '>', usuarioActual.xp || 0)
+      .get()
+      .then(function(snapshot) {
+        const miPosicion = snapshot.size + 1
+        const rango = calcularRango(usuarioActual.xp || 0)
+
+        document.getElementById('miPosicionContenedor').style.display = 'block'
+        document.getElementById('miFilaRanking').innerHTML = `
+          <div class="ranking-fila">
+            <span class="ranking-posicion">#${miPosicion}</span>
+            <span class="ranking-rango">${rango.icono}</span>
+            <span class="ranking-nombre">${usuarioActual.nombreMostrar} (tú)</span>
+            <span class="ranking-xp">${usuarioActual.xp || 0} XP</span>
+          </div>
+        `
+      })
+      .catch(function(error) {
+        console.log('Error buscando posición:', error)
+      })
+  }
 
   document.getElementById('btnAjustes').addEventListener('click', function() {
     document.getElementById('pantallaMenu').style.display = 'none'

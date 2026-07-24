@@ -232,10 +232,21 @@
   <div class="pantalla" id="pantallaClasificatoria" style="display:none;">
     <button class="btn-volver" id="btnVolverMenu3">← Volver</button>
     <div class="contenedor">
-      <div class="tarjeta" style="text-align:center; padding: 40px;">
-        <div style="font-size:3rem">🏆</div>
-        <p class="valor" style="margin-top:16px;">Clasificatoria</p>
-        <p style="color:#a0a0b0; margin-top:8px;">Próximamente</p>
+      <div class="tarjeta">
+        <div style="text-align:center; margin-bottom:16px;">
+          <span style="font-size:2rem">🏆</span>
+          <p class="valor" style="margin-top:4px;">Ranking Mundial</p>
+        </div>
+        <div id="rankingCargando" style="text-align:center; color:#a0a0b0; padding:20px;">
+          Cargando ranking...
+        </div>
+        <div id="listaRanking"></div>
+      </div>
+      <div id="miPosicionContenedor" style="display:none;">
+        <div class="tarjeta ranking-mi-posicion">
+          <p style="font-size:0.75rem; color:#a0a0b0; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px;">Tu posición</p>
+          <div id="miFilaRanking"></div>
+        </div>
       </div>
     </div>
   </div>
