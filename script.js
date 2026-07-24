@@ -15,6 +15,12 @@ let timerCOM = null
 let usuarioYaRespondio = false
 let palabraMaquinaRonda = ''
 
+// Variables para modo clasificatoria
+let modoClasificatoria = false
+let juegoActual = 1
+let juegosGanadosLocal = 0
+let juegosGanadosRival = 0
+
 // Variables de ayudas tácticas
 let fantasmaActivo = false
 
@@ -109,9 +115,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function gestionarRecargaVidas() {
     if (!usuarioActual) return
-
     const VIDAS_MAXIMAS = 6
-    const TIEMPO_RECARGA_MS = 30 * 60 * 1000 
+    const TIEMPO_RECARGA_MS = 30 * 60 * 1000
     let vidasActuales = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
     let ultimoMs = obtenerMsTiempo(usuarioActual.tiempoUltimaPerdida)
 
@@ -124,25 +129,17 @@ document.addEventListener('DOMContentLoaded', function() {
         vidasActuales = Math.min(VIDAS_MAXIMAS, vidasActuales + mediasRecuperadas)
         usuarioActual.vidas = vidasActuales
         usuarioActual.tiempoUltimaPerdida = ultimoMs + (mediasRecuperadas * TIEMPO_RECARGA_MS)
-
-        if (vidasActuales >= VIDAS_MAXIMAS) {
-          usuarioActual.tiempoUltimaPerdida = null
-        }
-
+        if (vidasActuales >= VIDAS_MAXIMAS) usuarioActual.tiempoUltimaPerdida = null
         const usuario = auth.currentUser
-        if (usuario) {
-          guardarVidasEnFirestore(usuario.uid, vidasActuales, usuarioActual.tiempoUltimaPerdida)
-        }
+        if (usuario) guardarVidasEnFirestore(usuario.uid, vidasActuales, usuarioActual.tiempoUltimaPerdida)
       }
     }
-
     actualizarInterfazVidas()
   }
 
   function actualizarInterfazVidas() {
     if (!usuarioActual) return
     const vidas = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
-
     document.getElementById('corazon1').textContent = vidas >= 2 ? '❤️' : vidas >= 1 ? '💔' : '🖤'
     document.getElementById('corazon2').textContent = vidas >= 4 ? '❤️' : vidas >= 3 ? '💔' : '🖤'
     document.getElementById('corazon3').textContent = vidas >= 6 ? '❤️' : vidas >= 5 ? '💔' : '🖤'
@@ -156,11 +153,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const TIEMPO_RECARGA_MS = 30 * 60 * 1000
         const msTranscurridos = (Date.now() - ultimoMs) % TIEMPO_RECARGA_MS
         const msRestantes = TIEMPO_RECARGA_MS - msTranscurridos
-
         const minutos = Math.floor(msRestantes / 60000)
         const segundos = Math.floor((msRestantes % 60000) / 1000)
-        
-        tiempoEl.textContent = `${minutos}:${segundos < 10 ? '0' : ''}${segundos}`
+        tiempoEl.textContent = minutos + ':' + (segundos < 10 ? '0' : '') + segundos
       } else {
         tiempoEl.textContent = '30:00'
       }
@@ -168,44 +163,31 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   setInterval(function() {
-    if (usuarioActual && usuarioActual.vidas < 6) {
-      gestionarRecargaVidas()
-    }
+    if (usuarioActual && usuarioActual.vidas < 6) gestionarRecargaVidas()
   }, 1000)
 
   function intentarGastarVida() {
     if (!usuarioActual) return false
     const vidasActuales = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
-
     if (vidasActuales < 1) {
       const tiempoEl = document.getElementById('tiempoRecargaVida')
       alert('¡No tienes suficientes vidas! Espera ' + (tiempoEl.textContent || 'unos minutos') + ' para recuperar medio corazón.')
       return false
     }
-
-    if (vidasActuales === 6 || !usuarioActual.tiempoUltimaPerdida) {
-      usuarioActual.tiempoUltimaPerdida = Date.now()
-    }
-
+    if (vidasActuales === 6 || !usuarioActual.tiempoUltimaPerdida) usuarioActual.tiempoUltimaPerdida = Date.now()
     usuarioActual.vidas = Math.max(0, vidasActuales - 1)
-
     const usuario = auth.currentUser
-    if (usuario) {
-      guardarVidasEnFirestore(usuario.uid, usuarioActual.vidas, usuarioActual.tiempoUltimaPerdida)
-    }
-
+    if (usuario) guardarVidasEnFirestore(usuario.uid, usuarioActual.vidas, usuarioActual.tiempoUltimaPerdida)
     actualizarInterfazVidas()
     return true
   }
 
   function guardarVidasEnFirestore(uid, vidas, tiempoUltimaPerdida) {
-    return db.collection('usuarios').doc(uid).update({
-      vidas: vidas,
-      tiempoUltimaPerdida: tiempoUltimaPerdida
-    })
+    return db.collection('usuarios').doc(uid).update({ vidas: vidas, tiempoUltimaPerdida: tiempoUltimaPerdida })
   }
 
   // ----- GESTIÓN DE STOCK DE AYUDAS -----
+
   function actualizarStockAyudas() {
     if (!usuarioActual) return
     document.getElementById('stockPista').textContent = usuarioActual.pistas !== undefined ? usuarioActual.pistas : 3
@@ -226,7 +208,8 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarStockAyudas()
   }
 
-  // ----- TIENDA Y COMPRAS (STRIPE REAL 1,25 €) -----
+  // ----- TIENDA -----
+
   document.getElementById('btnTienda').addEventListener('click', function() {
     document.getElementById('pantallaMenu').style.display = 'none'
     document.getElementById('pantallaTienda').style.display = 'flex'
@@ -237,17 +220,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaMenu').style.display = 'flex'
   })
 
-  function iniciarCompraReal(tipoAyuda, nombreAyuda) {
-    if (!usuarioActual || !auth.currentUser) {
-      alert('Debes iniciar sesión para realizar compras.')
-      return
-    }
+  function iniciarCompraReal(tipoAyuda) {
+    if (!usuarioActual || !auth.currentUser) { alert('Debes iniciar sesión para realizar compras.'); return }
     socket.emit('comprarAyuda', { tipoAyuda: tipoAyuda, userId: auth.currentUser.uid })
   }
 
-  socket.on('redirigirPago', function(urlStripe) {
-    window.location.href = urlStripe
-  })
+  socket.on('redirigirPago', function(urlStripe) { window.location.href = urlStripe })
 
   const urlParams = new URLSearchParams(window.location.search)
   if (urlParams.get('pago') === 'exito') {
@@ -260,13 +238,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (tipoComprado === 'pista') datosUsr.pistas = (datosUsr.pistas !== undefined ? datosUsr.pistas : 3) + 1
             if (tipoComprado === 'tiempo') datosUsr.tiempoExtra = (datosUsr.tiempoExtra !== undefined ? datosUsr.tiempoExtra : 3) + 1
             if (tipoComprado === 'fantasma') datosUsr.fantasmas = (datosUsr.fantasmas !== undefined ? datosUsr.fantasmas : 3) + 1
-
             db.collection('usuarios').doc(usuario.uid).update({
-              pistas: datosUsr.pistas,
-              tiempoExtra: datosUsr.tiempoExtra,
-              fantasmas: datosUsr.fantasmas
-            }).then(() => {
-              alert('¡Pago de 1,25 € completado con éxito! Se ha añadido tu ayuda al inventario.')
+              pistas: datosUsr.pistas, tiempoExtra: datosUsr.tiempoExtra, fantasmas: datosUsr.fantasmas
+            }).then(function() {
+              alert('¡Pago completado! Se ha añadido tu ayuda al inventario.')
               window.history.replaceState({}, document.title, window.location.pathname)
               location.reload()
             })
@@ -276,43 +251,28 @@ document.addEventListener('DOMContentLoaded', function() {
     })
   }
 
-  document.getElementById('btnComprarPista').addEventListener('click', function() {
-    iniciarCompraReal('pista', 'Pista')
-  })
+  document.getElementById('btnComprarPista').addEventListener('click', function() { iniciarCompraReal('pista') })
+  document.getElementById('btnComprarTiempo').addEventListener('click', function() { iniciarCompraReal('tiempo') })
+  document.getElementById('btnComprarFantasma').addEventListener('click', function() { iniciarCompraReal('fantasma') })
 
-  document.getElementById('btnComprarTiempo').addEventListener('click', function() {
-    iniciarCompraReal('tiempo', 'Cegar Rival')
-  })
-
-  document.getElementById('btnComprarFantasma').addEventListener('click', function() {
-    iniciarCompraReal('fantasma', 'Fantasma')
-  })
-
-  // ----- USO DE AYUDAS EN PARTIDA (CON VALIDACIÓN SEGURA) -----
+  // ----- AYUDAS EN PARTIDA -----
 
   document.getElementById('btnAyudaPista').addEventListener('click', function() {
     if (!usuarioActual) return
     if (usuarioActual.pistas === undefined) usuarioActual.pistas = 3
+    if (usuarioActual.pistas <= 0) { alert('¡No te quedan pistas!'); return }
 
-    if (usuarioActual.pistas <= 0) {
-      alert('¡No te quedan pistas!'); return
-    }
     const lista = diccionario[categoriaActualCOM] || []
-    const filtradas = lista.filter(p => p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toUpperCase() === letraActualCOM)
-    
+    const filtradas = lista.filter(function(p) {
+      return p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toUpperCase() === letraActualCOM
+    })
+
     if (filtradas.length > 0) {
       const palabra = filtradas[Math.floor(Math.random() * filtradas.length)]
-      const letrasPalabra = palabra.split('')
       let pistaParcial = ''
-      
-      letrasPalabra.forEach(letra => {
-        if (Math.random() < 0.5) {
-          pistaParcial += letra
-        } else {
-          pistaParcial += '_'
-        }
+      palabra.split('').forEach(function(letra) {
+        pistaParcial += Math.random() < 0.5 ? letra : '_'
       })
-
       usuarioActual.pistas -= 1
       guardarInventarioEnFirestore()
       document.getElementById('inputRespuesta').value = pistaParcial
@@ -322,37 +282,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   })
 
- document.getElementById('btnAyudaTiempo').addEventListener('click', function() {
+  document.getElementById('btnAyudaTiempo').addEventListener('click', function() {
     if (!usuarioActual) return
     if (usuarioActual.tiempoExtra === undefined) usuarioActual.tiempoExtra = 3
-
-    if (usuarioActual.tiempoExtra <= 0) {
-      alert('¡No te quedan bloqueos!'); return
-    }
+    if (usuarioActual.tiempoExtra <= 0) { alert('¡No te quedan bloqueos!'); return }
     usuarioActual.tiempoExtra -= 1
     guardarInventarioEnFirestore()
-
     socket.emit('cegarRival')
     alert('🔒 ¡Bloqueo activado! El rival no podrá escribir al comenzar la siguiente ronda.')
   })
+
   document.getElementById('btnAyudaFantasma').addEventListener('click', function() {
     if (!usuarioActual) return
     if (usuarioActual.fantasmas === undefined) usuarioActual.fantasmas = 3
-
-    if (usuarioActual.fantasmas <= 0) {
-      alert('¡No te quedan fantasmas!'); return
-    }
+    if (usuarioActual.fantasmas <= 0) { alert('¡No te quedan fantasmas!'); return }
     usuarioActual.fantasmas -= 1
     guardarInventarioEnFirestore()
     fantasmaActivo = true
-    alert('👻 ¡Fantasma activado! Si fallas o no aciertas en esta ronda, no perderás puntos.')
+    alert('👻 ¡Fantasma activado! Si fallas en esta ronda no perderás puntos.')
   })
 
-  // Receptor para cuando el servidor nos avisa de que el rival nos ha cegado
- socket.on('activarCegueraRival', function(datos) {
+  socket.on('activarCegueraRival', function(datos) {
     const cartel = document.getElementById('cartelBloqueado')
     const nombreBloqueador = datos && datos.nombreBloqueador ? datos.nombreBloqueador : 'tu rival'
-
     document.getElementById('nombreBloqueador').textContent = nombreBloqueador
     cartel.style.display = 'flex'
 
@@ -363,7 +315,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let cuenta = 5
     const cuentaEl = document.getElementById('cuentaAtrasBloqueo')
-
     const contador = setInterval(function() {
       cuenta -= 1
       cuentaEl.textContent = 'Se desbloqueará en ' + cuenta + ' segundos...'
@@ -375,6 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }, 1000)
   })
+
   // ----- BARRA DE USUARIO Y PERFIL -----
 
   function mostrarBarraUsuario() {
@@ -393,18 +345,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const xp = usuarioActual.xp || 0
     const rango = calcularRango(xp)
     const progreso = xpSiguienteRango(xp)
-
     document.getElementById('perfilRango').textContent = rango.icono
     document.getElementById('perfilNombre').textContent = usuarioActual.nombreMostrar
     document.getElementById('perfilNivel').textContent = rango.nombre + ' · ' + xp + ' XP'
     document.getElementById('perfilVictorias').textContent = usuarioActual.victorias || 0
     document.getElementById('perfilDerrotas').textContent = usuarioActual.derrotas || 0
     document.getElementById('perfilPartidas').textContent = usuarioActual.partidas || 0
-
-    const winrate = usuarioActual.partidas > 0
-      ? Math.round((usuarioActual.victorias / usuarioActual.partidas) * 100) : 0
+    const winrate = usuarioActual.partidas > 0 ? Math.round((usuarioActual.victorias / usuarioActual.partidas) * 100) : 0
     document.getElementById('perfilWinrate').textContent = winrate + '%'
-
     if (progreso.necesaria) {
       const porcentaje = Math.round((progreso.actual / progreso.necesaria) * 100)
       document.getElementById('barraProgreso').style.width = porcentaje + '%'
@@ -437,17 +385,58 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaMenu').style.display = 'flex'
   })
 
+  // Botón Jugar → abre selección de modo
+  document.getElementById('btnJugar').addEventListener('click', function() {
+    document.getElementById('pantallaMenu').style.display = 'none'
+    document.getElementById('pantallaSeleccionModo').style.display = 'flex'
+  })
+
+  document.getElementById('btnVolverMenuModo').addEventListener('click', function() {
+    document.getElementById('pantallaSeleccionModo').style.display = 'none'
+    document.getElementById('pantallaMenu').style.display = 'flex'
+  })
+
+  // Partida Rápida
   document.getElementById('btnPartidaRapida').addEventListener('click', function() {
     gestionarRecargaVidas()
     if (!intentarGastarVida()) return
-
     enModoVsCOM = false
-    document.getElementById('pantallaMenu').style.display = 'none'
+    modoClasificatoria = false
+    document.getElementById('pantallaSeleccionModo').style.display = 'none'
     document.getElementById('pantallaInicio').style.display = 'flex'
     document.getElementById('nombreEnPartida').textContent = usuarioActual ? usuarioActual.nombreMostrar : '—'
-    
     const btnUnirseEl = document.getElementById('btnUnirse')
     if (btnUnirseEl) btnUnirseEl.disabled = false
+  })
+
+  // Partida Clasificatoria
+  document.getElementById('btnPartidaClasificatoria').addEventListener('click', function() {
+    gestionarRecargaVidas()
+    if (!intentarGastarVida()) return
+    enModoVsCOM = false
+    modoClasificatoria = true
+    juegoActual = 1
+    juegosGanadosLocal = 0
+    juegosGanadosRival = 0
+    document.getElementById('pantallaSeleccionModo').style.display = 'none'
+    document.getElementById('pantallaInicio').style.display = 'flex'
+    document.getElementById('nombreEnPartida').textContent = usuarioActual ? usuarioActual.nombreMostrar : '—'
+    const btnUnirseEl = document.getElementById('btnUnirse')
+    if (btnUnirseEl) btnUnirseEl.disabled = false
+  })
+
+  // VS COM desde menú de selección
+  document.getElementById('btnVsCOMMenu').addEventListener('click', function() {
+    gestionarRecargaVidas()
+    if (!intentarGastarVida()) return
+    enModoVsCOM = true
+    modoClasificatoria = false
+    puntosUsuarioCOM = 0
+    puntosMaquinaCOM = 0
+    rondaCOM = 1
+    document.getElementById('pantallaSeleccionModo').style.display = 'none'
+    document.getElementById('pantallaJuego').style.display = 'flex'
+    iniciarRondaCOM()
   })
 
   document.getElementById('btnUnirse').addEventListener('click', function() {
@@ -457,25 +446,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('btnUnirse').disabled = true
   })
 
-  document.getElementById('btnVsCOM').addEventListener('click', function() {
-    gestionarRecargaVidas()
-    if (!intentarGastarVida()) return
-
-    enModoVsCOM = true
-    puntosUsuarioCOM = 0
-    puntosMaquinaCOM = 0
-    rondaCOM = 1
-
-    document.getElementById('pantallaMenu').style.display = 'none'
-    document.getElementById('pantallaJuego').style.display = 'flex'
-    iniciarRondaCOM()
-  })
+  // ----- VS COM -----
 
   function iniciarRondaCOM() {
-    if (puntosUsuarioCOM >= 5 || puntosMaquinaCOM >= 5) {
-      finalizarPartidaCOM()
-      return
-    }
+    if (puntosUsuarioCOM >= 5 || puntosMaquinaCOM >= 5) { finalizarPartidaCOM(); return }
 
     document.getElementById('rondaTexto').textContent = 'Ronda ' + rondaCOM + ' (Tú: ' + puntosUsuarioCOM + ' pts | IA: ' + puntosMaquinaCOM + ' pts)'
     usuarioYaRespondio = false
@@ -487,9 +461,7 @@ document.addEventListener('DOMContentLoaded', function() {
     letraActualCOM = letras.charAt(Math.floor(Math.random() * letras.length))
 
     document.getElementById('categoria').textContent = categoriaActualCOM
-    const elementoLetra = document.getElementById('letra')
-    elementoLetra.textContent = letraActualCOM
-
+    document.getElementById('letra').textContent = letraActualCOM
     document.getElementById('inputRespuesta').value = ''
     document.getElementById('btnEnviar').disabled = false
     document.getElementById('pantallaResultado').style.display = 'none'
@@ -507,12 +479,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!usuarioYaRespondio) {
           usuarioYaRespondio = true
           palabraMaquinaRonda = '(Tiempo agotado)'
-          
           let ptsPerdidos = fantasmaActivo ? 0 : -1
           fantasmaActivo = false
-
           puntosUsuarioCOM = Math.max(0, puntosUsuarioCOM + ptsPerdidos)
-          mostrarResultadoCOM('(Sin respuesta - Inmune)', false, ptsPerdidos)
+          mostrarResultadoCOM('(Sin respuesta)', false, ptsPerdidos)
         }
       }
     }, 100)
@@ -523,14 +493,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function maquinaPiensaYSale() {
     if (usuarioYaRespondio) return
-
     const listaCategoria = diccionario[categoriaActualCOM] || []
     const letraBuscada = letraActualCOM.toLowerCase()
     const filtradas = listaCategoria.filter(function(palabra) {
-      const inicial = palabra.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toLowerCase()
-      return inicial === letraBuscada
+      return palabra.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toLowerCase() === letraBuscada
     })
-
     const acierta = Math.random() < 0.75
     if (acierta && filtradas.length > 0) {
       palabraMaquinaRonda = filtradas[Math.floor(Math.random() * filtradas.length)]
@@ -539,14 +506,15 @@ document.addEventListener('DOMContentLoaded', function() {
       palabraMaquinaRonda = '(La IA falló)'
       puntosMaquinaCOM = Math.max(0, puntosMaquinaCOM - 1)
     }
-
     usuarioYaRespondio = true
     clearInterval(intervalo)
     clearTimeout(timerCOM)
     mostrarResultadoCOM('(La IA respondió primero)', false, 0)
   }
 
- document.getElementById('btnClasificatoria').addEventListener('click', function() {
+  // ----- RANKING -----
+
+  document.getElementById('btnClasificatoria').addEventListener('click', function() {
     document.getElementById('pantallaMenu').style.display = 'none'
     document.getElementById('pantallaClasificatoria').style.display = 'flex'
     cargarRanking()
@@ -557,16 +525,11 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('listaRanking').innerHTML = ''
     document.getElementById('miPosicionContenedor').style.display = 'none'
 
-    // Cargamos los 100 jugadores con más XP
-    db.collection('usuarios')
-      .orderBy('xp', 'desc')
-      .limit(100)
-      .get()
+    db.collection('usuarios').orderBy('xp', 'desc').limit(100).get()
       .then(function(snapshot) {
         document.getElementById('rankingCargando').style.display = 'none'
         const lista = document.getElementById('listaRanking')
         lista.innerHTML = ''
-
         let miPosicionEnTop100 = false
         let posicion = 1
 
@@ -574,7 +537,6 @@ document.addEventListener('DOMContentLoaded', function() {
           const datos = doc.data()
           const esYo = usuarioActual && datos.nombreUsuario === usuarioActual.nombreUsuario
           const rango = calcularRango(datos.xp || 0)
-
           if (esYo) miPosicionEnTop100 = true
 
           const fila = document.createElement('div')
@@ -600,10 +562,7 @@ document.addEventListener('DOMContentLoaded', function() {
           posicion++
         })
 
-        // Si el usuario no está en el top 100, buscamos su posición
-        if (!miPosicionEnTop100 && usuarioActual) {
-          buscarMiPosicion()
-        }
+        if (!miPosicionEnTop100 && usuarioActual) buscarMiPosicion()
       })
       .catch(function(error) {
         console.log('Error cargando ranking:', error)
@@ -613,15 +572,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function buscarMiPosicion() {
     if (!usuarioActual) return
-
-    // Contamos cuántos usuarios tienen más XP que yo
-    db.collection('usuarios')
-      .where('xp', '>', usuarioActual.xp || 0)
-      .get()
+    db.collection('usuarios').where('xp', '>', usuarioActual.xp || 0).get()
       .then(function(snapshot) {
         const miPosicion = snapshot.size + 1
         const rango = calcularRango(usuarioActual.xp || 0)
-
         document.getElementById('miPosicionContenedor').style.display = 'block'
         document.getElementById('miFilaRanking').innerHTML = `
           <div class="ranking-fila">
@@ -632,10 +586,10 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
         `
       })
-      .catch(function(error) {
-        console.log('Error buscando posición:', error)
-      })
+      .catch(function(error) { console.log('Error buscando posición:', error) })
   }
+
+  // ----- AJUSTES Y BOTONES VOLVER -----
 
   document.getElementById('btnAjustes').addEventListener('click', function() {
     document.getElementById('pantallaMenu').style.display = 'none'
@@ -662,22 +616,17 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaMenu').style.display = 'flex'
   })
 
-  // ----- PARTIDA RÁPIDA SOCKETS -----
+  // ----- SOCKETS PARTIDA ONLINE -----
 
-  socket.on('esperando', function() {
-    console.log('Esperando a otro jugador...')
-  })
+  socket.on('esperando', function() { console.log('Esperando a otro jugador...') })
 
   socket.on('partidaEncontrada', function(datos) {
     document.getElementById('pantallaInicio').style.display = 'none'
-
     const nombresJugadores = datos.jugadores || []
     const rival = nombresJugadores.find(function(n) { return n !== miNombre }) || 'Rival'
-
     document.getElementById('vsNombre1').textContent = miNombre || 'Tú'
     document.getElementById('vsNombre2').textContent = rival
     document.getElementById('pantallaVersus').style.display = 'flex'
-
     setTimeout(function() {
       document.getElementById('pantallaVersus').style.display = 'none'
       document.getElementById('pantallaJuego').style.display = 'flex'
@@ -690,10 +639,7 @@ document.addEventListener('DOMContentLoaded', function() {
   socket.on('nuevaRonda', function(datos) {
     if (enModoVsCOM) return
     document.getElementById('categoria').textContent = datos.categoria
-    
-    const elementoLetra = document.getElementById('letra')
-    elementoLetra.textContent = datos.letra
-
+    document.getElementById('letra').textContent = datos.letra
     document.getElementById('inputRespuesta').value = ''
     document.getElementById('btnEnviar').disabled = false
     document.getElementById('pantallaResultado').style.display = 'none'
@@ -747,8 +693,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!palabraMaquinaRonda) {
         const aciertaIA = Math.random() < 0.75
         const filtradas = listaCategoria.filter(function(p) {
-          const inicial = p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toLowerCase()
-          return inicial === letraActualCOM.toLowerCase()
+          return p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toLowerCase() === letraActualCOM.toLowerCase()
         })
         if (aciertaIA && filtradas.length > 0) {
           palabraMaquinaRonda = filtradas[Math.floor(Math.random() * filtradas.length)]
@@ -759,7 +704,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
 
-      mostrarResultadoCOM(respuesta, esValida, esValida ? 1 : (fantasmaActivo ? 0 : -1))
+      mostrarResultadoCOM(respuesta, esValida, esValida ? 1 : -1)
     } else {
       document.getElementById('btnEnviar').disabled = true
       clearInterval(intervalo)
@@ -771,7 +716,9 @@ document.addEventListener('DOMContentLoaded', function() {
   function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaResultado').style.display = 'flex'
-    document.getElementById('tituloResultado').textContent = validaUser ? '¡Punto anotado (+1)!' : (ptsUser === 0 ? 'Palabra incorrecta (Inmune por Fantasma)' : 'Palabra incorrecta (-1)')
+    document.getElementById('tituloResultado').textContent = validaUser
+      ? '¡Punto anotado (+1)!'
+      : (ptsUser === 0 ? 'Palabra incorrecta (Inmune por Fantasma)' : 'Palabra incorrecta (-1)')
 
     const contenedor = document.getElementById('respuestasJugadores')
     contenedor.innerHTML = `
@@ -828,18 +775,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   })
 
- socket.on('victoriaRival', function(datos) {
+  socket.on('victoriaRival', function(datos) {
     if (enModoVsCOM) return
     clearInterval(intervalo)
 
-    // Ocultamos todas las pantallas de juego
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaResultado').style.display = 'none'
 
-    // Actualizamos XP por victoria
     const usuario = auth.currentUser
     if (usuario && usuarioActual) {
-      actualizarXP(usuario.uid, 50, true).then(function() {
+      const xpGanado = modoClasificatoria ? 210 : 50
+      actualizarXP(usuario.uid, xpGanado, true).then(function() {
         return obtenerUsuario(usuario.uid)
       }).then(function(doc) {
         usuarioActual = doc.data()
@@ -847,7 +793,6 @@ document.addEventListener('DOMContentLoaded', function() {
       })
     }
 
-    // Mostramos la pantalla de victoria
     document.getElementById('pantallaVictoria').style.display = 'flex'
     document.getElementById('nombreGanador').textContent = datos.nombreGanador
 
@@ -859,6 +804,9 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
     `
 
+    document.getElementById('btnJugarOtraVez').textContent = 'Volver al menú'
+    document.getElementById('btnJugarOtraVez').onclick = function() { location.reload() }
+
     let cuenta = 5
     const textoContador = document.createElement('p')
     textoContador.style.cssText = 'text-align:center; color:#1a2e5a; margin-top:16px; font-size:0.9rem;'
@@ -868,12 +816,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const contador = setInterval(function() {
       cuenta -= 1
       textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
-      if (cuenta <= 0) {
-        clearInterval(contador)
-        location.reload()
-      }
+      if (cuenta <= 0) { clearInterval(contador); location.reload() }
     }, 1000)
   })
+
+  // ----- VICTORIA VS COM -----
 
   function finalizarPartidaCOM() {
     document.getElementById('pantallaResultado').style.display = 'none'
@@ -895,32 +842,27 @@ document.addEventListener('DOMContentLoaded', function() {
     if (usuario && ganoUser && usuarioActual) {
       const xpAnterior = usuarioActual.xp || 0
       const rangoAnterior = calcularRango(xpAnterior).nombre
-
       actualizarXP(usuario.uid, 30, true).then(function() {
         return obtenerUsuario(usuario.uid)
       }).then(function(doc) {
         const nuevoDatos = doc.data()
-        const nuevoXp = nuevoDatos.xp || 0
-        const rangoNuevo = calcularRango(nuevoXp).nombre
-
+        const rangoNuevo = calcularRango(nuevoDatos.xp || 0).nombre
         if (rangoNuevo !== rangoAnterior) {
-          nuevoDatos.pistas = (nuevoDatos.pistas !== undefined ? nuevoDatos.pistas : 3) + 1
-          nuevoDatos.tiempoExtra = (nuevoDatos.tiempoExtra !== undefined ? nuevoDatos.tiempoExtra : 3) + 1
-          nuevoDatos.fantasmas = (nuevoDatos.fantasmas !== undefined ? nuevoDatos.fantasmas : 3) + 1
-
+          nuevoDatos.pistas = (nuevoDatos.pistas || 3) + 1
+          nuevoDatos.tiempoExtra = (nuevoDatos.tiempoExtra || 3) + 1
+          nuevoDatos.fantasmas = (nuevoDatos.fantasmas || 3) + 1
           db.collection('usuarios').doc(usuario.uid).update({
-            pistas: nuevoDatos.pistas,
-            tiempoExtra: nuevoDatos.tiempoExtra,
-            fantasmas: nuevoDatos.fantasmas
+            pistas: nuevoDatos.pistas, tiempoExtra: nuevoDatos.tiempoExtra, fantasmas: nuevoDatos.fantasmas
           })
-
-          alert('🎉 ¡Enhorabuena! Has subido de rango. Has recibido +1 Pista, +1 Cegar y +1 Fantasma como recompensa.')
+          alert('🎉 ¡Has subido de rango! +1 Pista, +1 Bloqueo y +1 Fantasma de recompensa.')
         }
-
         usuarioActual = nuevoDatos
         mostrarBarraUsuario()
       })
     }
+
+    document.getElementById('btnJugarOtraVez').textContent = 'Volver al menú'
+    document.getElementById('btnJugarOtraVez').onclick = function() { location.reload() }
 
     let cuenta = 5
     const textoContador = document.createElement('p')
@@ -934,6 +876,8 @@ document.addEventListener('DOMContentLoaded', function() {
       if (cuenta <= 0) { clearInterval(contador); location.reload() }
     }, 1000)
   }
+
+  // ----- VICTORIA ONLINE -----
 
   function mostrarVictoria(datos) {
     const usuario = auth.currentUser
@@ -941,58 +885,69 @@ document.addEventListener('DOMContentLoaded', function() {
       const esGanador = datos.jugadores.find(function(j) {
         return j.nombre === usuarioActual.nombreMostrar && j.puntos >= 5
       })
-      const cantidad = esGanador ? 50 : -10
-      const xpAnterior = usuarioActual.xp || 0
-      const rangoAnterior = calcularRango(xpAnterior).nombre
 
-      actualizarXP(usuario.uid, cantidad, !!esGanador).then(function() {
-        return obtenerUsuario(usuario.uid)
-      }).then(function(doc) {
-        const nuevoDatos = doc.data()
-        const nuevoXp = nuevoDatos.xp || 0
-        const rangoNuevo = calcularRango(nuevoXp).nombre
+      // En clasificatoria la XP se da al final de la serie, no por juego
+      if (!modoClasificatoria) {
+        const cantidad = esGanador ? 50 : -10
+        const xpAnterior = usuarioActual.xp || 0
+        const rangoAnterior = calcularRango(xpAnterior).nombre
+        actualizarXP(usuario.uid, cantidad, !!esGanador).then(function() {
+          return obtenerUsuario(usuario.uid)
+        }).then(function(doc) {
+          const nuevoDatos = doc.data()
+          const rangoNuevo = calcularRango(nuevoDatos.xp || 0).nombre
+          if (esGanador && rangoNuevo !== rangoAnterior) {
+            nuevoDatos.pistas = (nuevoDatos.pistas || 3) + 1
+            nuevoDatos.tiempoExtra = (nuevoDatos.tiempoExtra || 3) + 1
+            nuevoDatos.fantasmas = (nuevoDatos.fantasmas || 3) + 1
+            db.collection('usuarios').doc(usuario.uid).update({
+              pistas: nuevoDatos.pistas, tiempoExtra: nuevoDatos.tiempoExtra, fantasmas: nuevoDatos.fantasmas
+            })
+            alert('🎉 ¡Has subido de rango! +1 Pista, +1 Bloqueo y +1 Fantasma de recompensa.')
+          }
+          usuarioActual = nuevoDatos
+          mostrarBarraUsuario()
+        })
+      }
 
-        if (esGanador && rangoNuevo !== rangoAnterior) {
-          nuevoDatos.pistas = (nuevoDatos.pistas !== undefined ? nuevoDatos.pistas : 3) + 1
-          nuevoDatos.tiempoExtra = (nuevoDatos.tiempoExtra !== undefined ? nuevoDatos.tiempoExtra : 3) + 1
-          nuevoDatos.fantasmas = (nuevoDatos.fantasmas !== undefined ? nuevoDatos.fantasmas : 3) + 1
-
-          db.collection('usuarios').doc(usuario.uid).update({
-            pistas: nuevoDatos.pistas,
-            tiempoExtra: nuevoDatos.tiempoExtra,
-            fantasmas: nuevoDatos.fantasmas
-          })
-
-          alert('🎉 ¡Enhorabuena! Has subido de rango. Has recibido +1 Pista, +1 Cegar y +1 Fantasma como recompensa.')
+      // Lógica de clasificatoria
+      if (modoClasificatoria) {
+        if (esGanador) {
+          juegosGanadosLocal += 1
+        } else {
+          juegosGanadosRival += 1
         }
 
-        usuarioActual = nuevoDatos
-        mostrarBarraUsuario()
-      })
+        if (juegosGanadosLocal >= 2 || juegosGanadosRival >= 2) {
+          mostrarVictoriaFinalClasificatoria()
+          return
+        } else {
+          juegoActual += 1
+          mostrarEntreJuegos()
+          return
+        }
+      }
     }
 
+    // Victoria normal (partida rápida)
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaVictoria').style.display = 'flex'
 
-    const ganador = datos.jugadores.reduce(function(a, b) {
-      return a.puntos > b.puntos ? a : b
-    })
-
+    const ganador = datos.jugadores.reduce(function(a, b) { return a.puntos > b.puntos ? a : b })
     document.getElementById('nombreGanador').textContent = ganador.nombre
 
     const contenedor = document.getElementById('puntosFinales')
     contenedor.innerHTML = ''
-
     datos.jugadores.forEach(function(jugador) {
       const fila = document.createElement('div')
       fila.className = 'fila-puntos-final'
-      fila.innerHTML = `
-        <span class="nombre">${jugador.nombre}</span>
-        <span class="puntos">${jugador.puntos} pts</span>
-      `
+      fila.innerHTML = `<span class="nombre">${jugador.nombre}</span><span class="puntos">${jugador.puntos} pts</span>`
       contenedor.appendChild(fila)
     })
+
+    document.getElementById('btnJugarOtraVez').textContent = 'Volver al menú'
+    document.getElementById('btnJugarOtraVez').onclick = function() { location.reload() }
 
     let cuenta = 5
     const textoContador = document.createElement('p')
@@ -1007,9 +962,113 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000)
   }
 
-  document.getElementById('btnJugarOtraVez').addEventListener('click', function() {
-    location.reload()
-  })
+  // ----- CLASIFICATORIA: ENTRE JUEGOS -----
+
+  function mostrarEntreJuegos() {
+    document.getElementById('pantallaResultado').style.display = 'none'
+    document.getElementById('pantallaJuego').style.display = 'none'
+    document.getElementById('pantallaVictoria').style.display = 'flex'
+
+    const tituloJuego = juegoActual === 3 ? '¡Juego de desempate!' : 'Juego ' + (juegoActual - 1) + ' completado'
+    document.getElementById('nombreGanador').textContent = tituloJuego
+
+    const contenedor = document.getElementById('puntosFinales')
+    contenedor.innerHTML = `
+      <div class="fila-puntos-final">
+        <span class="nombre">${usuarioActual ? usuarioActual.nombreMostrar : 'Tú'}</span>
+        <span class="puntos">${juegosGanadosLocal} juegos ganados</span>
+      </div>
+      <div class="fila-puntos-final">
+        <span class="nombre">Rival</span>
+        <span class="puntos">${juegosGanadosRival} juegos ganados</span>
+      </div>
+    `
+
+    const btnOtraVez = document.getElementById('btnJugarOtraVez')
+    btnOtraVez.textContent = juegoActual === 3 ? '¡Jugar desempate! 🔥' : 'Siguiente juego →'
+    btnOtraVez.onclick = function() {
+      document.getElementById('pantallaVictoria').style.display = 'none'
+      socket.emit('listoSiguienteJuego')
+    }
+  }
+
+  // ----- CLASIFICATORIA: VICTORIA FINAL -----
+
+  function mostrarVictoriaFinalClasificatoria() {
+    document.getElementById('pantallaResultado').style.display = 'none'
+    document.getElementById('pantallaJuego').style.display = 'none'
+    document.getElementById('pantallaVictoria').style.display = 'flex'
+
+    const ganoSerie = juegosGanadosLocal > juegosGanadosRival
+    document.getElementById('nombreGanador').textContent = ganoSerie
+      ? (usuarioActual ? usuarioActual.nombreMostrar : 'Tú')
+      : 'Rival'
+
+    // Damos XP al ganador de la serie
+    const usuario = auth.currentUser
+    if (usuario && usuarioActual && ganoSerie) {
+      const xpAnterior = usuarioActual.xp || 0
+      const rangoAnterior = calcularRango(xpAnterior).nombre
+      actualizarXP(usuario.uid, 210, true).then(function() {
+        return obtenerUsuario(usuario.uid)
+      }).then(function(doc) {
+        const nuevoDatos = doc.data()
+        const rangoNuevo = calcularRango(nuevoDatos.xp || 0).nombre
+        if (rangoNuevo !== rangoAnterior) {
+          nuevoDatos.pistas = (nuevoDatos.pistas || 3) + 1
+          nuevoDatos.tiempoExtra = (nuevoDatos.tiempoExtra || 3) + 1
+          nuevoDatos.fantasmas = (nuevoDatos.fantasmas || 3) + 1
+          db.collection('usuarios').doc(usuario.uid).update({
+            pistas: nuevoDatos.pistas, tiempoExtra: nuevoDatos.tiempoExtra, fantasmas: nuevoDatos.fantasmas
+          })
+          alert('🎉 ¡Has subido de rango! +1 Pista, +1 Bloqueo y +1 Fantasma de recompensa.')
+        }
+        usuarioActual = nuevoDatos
+        mostrarBarraUsuario()
+      })
+    } else if (usuario && usuarioActual && !ganoSerie) {
+      actualizarXP(usuario.uid, -10, false).then(function() {
+        return obtenerUsuario(usuario.uid)
+      }).then(function(doc) {
+        usuarioActual = doc.data()
+        mostrarBarraUsuario()
+      })
+    }
+
+    const contenedor = document.getElementById('puntosFinales')
+    contenedor.innerHTML = `
+      <div class="fila-puntos-final">
+        <span class="nombre">${usuarioActual ? usuarioActual.nombreMostrar : 'Tú'}</span>
+        <span class="puntos">${juegosGanadosLocal} juegos</span>
+      </div>
+      <div class="fila-puntos-final">
+        <span class="nombre">Rival</span>
+        <span class="puntos">${juegosGanadosRival} juegos</span>
+      </div>
+      <div class="fila-puntos-final" style="margin-top:8px;">
+        <span class="nombre">${ganoSerie ? '🏅 +210 XP por victoria clasificatoria' : '-10 XP'}</span>
+        <span class="puntos"></span>
+      </div>
+    `
+
+    const btnOtraVez = document.getElementById('btnJugarOtraVez')
+    btnOtraVez.textContent = 'Volver al menú'
+    btnOtraVez.onclick = function() { location.reload() }
+
+    let cuenta = 8
+    const textoContador = document.createElement('p')
+    textoContador.style.cssText = 'text-align:center; color:#1a2e5a; margin-top:16px; font-size:0.9rem;'
+    textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
+    document.querySelector('.tarjeta-victoria').appendChild(textoContador)
+
+    const contador = setInterval(function() {
+      cuenta -= 1
+      textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
+      if (cuenta <= 0) { clearInterval(contador); location.reload() }
+    }, 1000)
+  }
+
+  // ----- SERVICE WORKER -----
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
@@ -1017,4 +1076,4 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(function(error) { console.log('Error SW:', error) })
   }
 
-})
+}) // cierre del DOMContentLoaded

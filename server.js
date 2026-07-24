@@ -101,6 +101,21 @@ io.on('connection', function(socket) {
     if (!sala || !partidas[sala]) return
     iniciarRonda(sala)
   })
+  
+  socket.on('listoSiguienteJuego', function() {
+    const sala = socket.sala
+    if (!sala || !partidas[sala]) return
+
+    // Reiniciamos los puntos de los jugadores para el nuevo juego
+    partidas[sala].jugadores.forEach(function(j) {
+      j.puntos = 0
+      j.eliminado = false
+    })
+    partidas[sala].primerEnResponder = null
+    partidas[sala].respuestasRonda = {}
+
+    iniciarRonda(sala)
+  })
 
   // ----- EVENTO PARA CEGAR AL RIVAL EN LA SIGUIENTE RONDA -----
  socket.on('cegarRival', function() {

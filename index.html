@@ -94,10 +94,10 @@
     <div class="menu-contenido">
       <h2 class="menu-titulo">WORD<span class="titulo-acento">GAME</span></h2>
       <div class="menu-botones">
-        <button class="btn-menu" id="btnPartidaRapida">
-          <span class="btn-icono">⚡</span>
-          <span class="btn-texto">Partida Rápida</span>
-          <span class="btn-descripcion">Juega contra otro jugador online</span>
+        <button class="btn-menu" id="btnJugar">
+          <span class="btn-icono">🎮</span>
+          <span class="btn-texto">Jugar</span>
+          <span class="btn-descripcion">Partida rápida o clasificatoria</span>
         </button>
         <button class="btn-menu" id="btnVsCOM">
           <span class="btn-icono">🤖</span>
@@ -120,6 +120,37 @@
           <span class="btn-descripcion">Sonido e idioma</span>
         </button>
       </div>
+    </div>
+  </div>
+  <!-- PANTALLA SELECCIÓN DE MODO -->
+  <div class="pantalla" id="pantallaSeleccionModo" style="display:none;">
+    <button class="btn-volver" id="btnVolverMenuModo">← Volver</button>
+    <div class="contenedor">
+      <h2 style="text-align:center; margin-bottom:24px; font-size:1.5rem;">Elige modo de juego</h2>
+
+      <button class="btn-menu" id="btnPartidaRapida">
+        <span class="btn-icono">⚡</span>
+        <div>
+          <span class="btn-texto">Partida Rápida</span>
+          <span class="btn-descripcion">Primera a 5 puntos · 50 XP</span>
+        </div>
+      </button>
+
+      <button class="btn-menu" id="btnPartidaClasificatoria">
+        <span class="btn-icono">🏅</span>
+        <div>
+          <span class="btn-texto">Clasificatoria</span>
+          <span class="btn-descripcion">Mejor de 3 juegos · 210 XP</span>
+        </div>
+      </button>
+
+      <button class="btn-menu" id="btnVsCOMMenu">
+        <span class="btn-icono">🤖</span>
+        <div>
+          <span class="btn-texto">VS Computadora</span>
+          <span class="btn-descripcion">Pon a prueba tu velocidad · 30 XP</span>
+        </div>
+      </button>
     </div>
   </div>
 
