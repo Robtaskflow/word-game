@@ -736,3 +736,37 @@ button:disabled {
   background: rgba(59, 130, 246, 0.1);
   border-radius: 8px;
 }
+
+/* Animación de caída y rebote para el logo */
+@keyframes reboteMuelle {
+  0% { 
+    transform: translateY(-300px) scaleY(1.1); 
+    opacity: 0;
+    animation-timing-function: ease-in; 
+  }
+  40% { 
+    transform: translateY(0) scaleY(0.85); 
+    opacity: 1;
+    animation-timing-function: ease-out; 
+  }
+  55% { 
+    transform: translateY(-50px) scaleY(1.05); 
+    animation-timing-function: ease-in; 
+  }
+  75% { 
+    transform: translateY(0) scaleY(0.95); 
+    animation-timing-function: ease-out; 
+  }
+  90% { 
+    transform: translateY(-15px) scaleY(1.02); 
+    animation-timing-function: ease-in; 
+  }
+  100% { 
+    transform: translateY(0) scaleY(1); 
+    animation-timing-function: ease-out; 
+  }
+}
+
+.animar-caida {
+  animation: reboteMuelle 1s forwards;
+}

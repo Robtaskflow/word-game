@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.getElementById('pantallaBienvenida').style.display = 'none'
 
-  auth.onAuthStateChanged(function(usuario) {
+ auth.onAuthStateChanged(function(usuario) {
     if (usuario) {
       obtenerUsuario(usuario.uid).then(function(doc) {
         if (doc.exists) {
@@ -39,6 +39,25 @@ document.addEventListener('DOMContentLoaded', function() {
           mostrarBarraUsuario()
           document.getElementById('pantallaLogin').style.display = 'none'
           document.getElementById('pantallaBienvenida').style.display = 'flex'
+
+          // --- NUEVO: ANIMACIÓN Y SONIDO DEL LOGO ---
+          const titulo = document.getElementById('tituloBienvenida')
+          if (titulo) {
+            // Reiniciamos la animación por si cierra sesión y vuelve a entrar
+            titulo.classList.remove('animar-caida')
+            void titulo.offsetWidth // Esto fuerza al navegador a reiniciar el CSS
+            titulo.classList.add('animar-caida')
+
+            // Cargamos el sonido y lo hacemos sonar sincronizado con el primer rebote (a los 400ms)
+            const sonidoMuelle = new Audio('/muelle.mp3')
+            sonidoMuelle.volume = 0.5 // Volumen al 50% para que no asuste
+            
+            setTimeout(() => {
+              sonidoMuelle.play().catch(e => console.log('Sonido bloqueado por el navegador hasta que el usuario interactúe'))
+            }, 400) // 400ms coincide exactamente con el 40% del @keyframes
+          }
+          // ------------------------------------------
+
         } else {
           document.getElementById('pantallaLogin').style.display = 'none'
           document.getElementById('pantallaElegirNombre').style.display = 'flex'
