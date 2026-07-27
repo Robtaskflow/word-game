@@ -83,7 +83,6 @@
   <!-- PANTALLA BIENVENIDA -->
   <div class="pantalla" id="pantallaBienvenida" style="display:none;">
     <div class="bienvenida-contenido">
-      <!-- AQUÍ ESTÁ EL ID NUEVO PARA LA ANIMACIÓN -->
       <h1 class="titulo-juego" id="tituloBienvenida">WORD<span class="titulo-acento">GAME</span></h1>
       <p class="subtitulo">El juego de palabras más rápido</p>
       <div class="toca-para-continuar">Toca para continuar</div>
@@ -96,24 +95,44 @@
       <h2 class="menu-titulo">WORD<span class="titulo-acento">GAME</span></h2>
       <div class="menu-botones">
         <button class="btn-menu" id="btnJugar">
-          <span class="btn-icono">🎮</span>
-          <span class="btn-texto">Jugar</span>
-          <span class="btn-descripcion">Partida rápida o clasificatoria</span>
+          <div class="btn-menu-contenido">
+            <span class="btn-icono">🎮</span>
+            <div>
+              <span class="btn-texto">Jugar</span>
+              <span class="btn-descripcion">Partida rápida o clasificatoria</span>
+            </div>
+          </div>
+          <div class="btn-icono-derecha">⚔️</div>
         </button>
         <button class="btn-menu" id="btnTienda">
-          <span class="btn-icono">🛒</span>
-          <span class="btn-texto">Tienda de Ayudas</span>
-          <span class="btn-descripcion">Compra pistas, bloqueos y fantasmas</span>
+          <div class="btn-menu-contenido">
+            <span class="btn-icono">🛒</span>
+            <div>
+              <span class="btn-texto">Tienda de Ayudas</span>
+              <span class="btn-descripcion">Compra pistas, bloqueos y fantasmas</span>
+            </div>
+          </div>
+          <div class="btn-icono-derecha">🎁</div>
         </button>
         <button class="btn-menu" id="btnClasificatoria">
-          <span class="btn-icono">🏆</span>
-          <span class="btn-texto">Clasificatoria</span>
-          <span class="btn-descripcion">Ranking mundial y estadísticas</span>
+          <div class="btn-menu-contenido">
+            <span class="btn-icono">🏆</span>
+            <div>
+              <span class="btn-texto">Clasificatoria</span>
+              <span class="btn-descripcion">Ranking mundial y estadísticas</span>
+            </div>
+          </div>
+          <div class="btn-icono-derecha">🎖️</div>
         </button>
         <button class="btn-menu" id="btnAjustes">
-          <span class="btn-icono">⚙️</span>
-          <span class="btn-texto">Ajustes</span>
-          <span class="btn-descripcion">Sonido e idioma</span>
+          <div class="btn-menu-contenido">
+            <span class="btn-icono">⚙️</span>
+            <div>
+              <span class="btn-texto">Ajustes</span>
+              <span class="btn-descripcion">Sonido e idioma</span>
+            </div>
+          </div>
+          <div class="btn-icono-derecha">🔧</div>
         </button>
       </div>
     </div>
@@ -126,27 +145,36 @@
       <h2 style="text-align:center; margin-bottom:24px; font-size:1.5rem;">Elige modo de juego</h2>
 
       <button class="btn-menu" id="btnPartidaRapida">
-        <span class="btn-icono">⚡</span>
-        <div>
-          <span class="btn-texto">Partida Rápida</span>
-          <span class="btn-descripcion">Primera a 5 puntos · 50 XP</span>
+        <div class="btn-menu-contenido">
+          <span class="btn-icono">⚡</span>
+          <div>
+            <span class="btn-texto">Partida Rápida</span>
+            <span class="btn-descripcion">Primera a 5 puntos · 50 XP</span>
+          </div>
         </div>
+        <div class="btn-icono-derecha">🎮</div>
       </button>
 
       <button class="btn-menu" id="btnPartidaClasificatoria">
-        <span class="btn-icono">🏅</span>
-        <div>
-          <span class="btn-texto">Clasificatoria</span>
-          <span class="btn-descripcion">Mejor de 3 juegos · 210 XP</span>
+        <div class="btn-menu-contenido">
+          <span class="btn-icono">🏅</span>
+          <div>
+            <span class="btn-texto">Clasificatoria</span>
+            <span class="btn-descripcion">Mejor de 3 juegos · 210 XP</span>
+          </div>
         </div>
+        <div class="btn-icono-derecha">🏆</div>
       </button>
 
       <button class="btn-menu" id="btnVsCOMMenu">
-        <span class="btn-icono">🤖</span>
-        <div>
-          <span class="btn-texto">VS Computadora</span>
-          <span class="btn-descripcion">Pon a prueba tu velocidad · 30 XP</span>
+        <div class="btn-menu-contenido">
+          <span class="btn-icono">🤖</span>
+          <div>
+            <span class="btn-texto">VS Computadora</span>
+            <span class="btn-descripcion">Pon a prueba tu velocidad · 30 XP</span>
+          </div>
         </div>
+        <div class="btn-icono-derecha">🤖</div>
       </button>
     </div>
   </div>

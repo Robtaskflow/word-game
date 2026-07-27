@@ -732,54 +732,56 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
+function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaResultado').style.display = 'flex'
-    document.getElementById('tituloResultado').textContent = validaUser
-      ? '¡Punto anotado (+1)!'
-      : (ptsUser === 0 ? 'Palabra incorrecta (Inmune por Fantasma)' : 'Palabra incorrecta (-1)')
+    
+    const titulo = document.getElementById('tituloResultado')
+    titulo.textContent = validaUser ? 'PALABRA CORRECTA (+1)' : (ptsUser === 0 ? 'PALABRA INCORRECTA (INMUNE)' : 'PALABRA INCORRECTA (-1)')
+    titulo.style.color = validaUser ? '#2ecc71' : '#ff5e5e' 
 
     const contenedor = document.getElementById('respuestasJugadores')
+    
+    // Usuario
+    const claseUser = validaUser ? 'fila-verde' : 'fila-roja'
+    const iconoUser = validaUser ? '✓' : '!'
+    const bgIconoUser = validaUser ? '#2ecc71' : '#e74c3c'
+    const textoSumaUser = validaUser ? 'Total: +1 pts' : (ptsUser === 0 ? 'Total: 0 pts' : 'Total: -1 pts')
+    const colorPtsUser = validaUser ? 't-verde' : 't-rojo'
+
+    // IA
+    const iaValida = (palabraMaquinaRonda !== '(La IA falló)' && palabraMaquinaRonda !== '(Tiempo agotado)')
+    const claseIA = iaValida ? 'fila-verde' : 'fila-roja'
+    const iconoIA = '🤖'
+    const textoSumaIA = iaValida ? 'Total: +1 pts' : 'Total: -1 pts'
+    const colorPtsIA = iaValida ? 't-verde' : 't-rojo'
+
     contenedor.innerHTML = `
-      <div class="fila-jugador" style="padding:8px 0; border-bottom:1px solid #333;">
-        <span class="nombre-jugador">Tú</span>
-        <span class="puntos-jugador">${respUser} — Total: ${puntosUsuarioCOM} pts</span>
+      <!-- Fila Usuario -->
+      <div class="fila-resultado-custom ${claseUser}">
+        <div class="res-izq">
+          <div class="res-circulo-icono" style="background:${bgIconoUser}; color:white;">${iconoUser}</div>
+          <span>Tú</span>
+        </div>
+        <div class="res-palabra-centro">${respUser || '---'}</div>
+        <div class="res-puntos-derecha ${colorPtsUser}">${textoSumaUser}</div>
       </div>
-      <div class="fila-jugador" style="padding:8px 0;">
-        <span class="nombre-jugador">Computadora (IA)</span>
-        <span class="puntos-jugador">${palabraMaquinaRonda} — Total: ${puntosMaquinaCOM} pts</span>
+      <div class="texto-total-grande t-blanco">Total: ${puntosUsuarioCOM} pts</div>
+
+      <!-- Fila IA -->
+      <div class="fila-resultado-custom ${claseIA}">
+        <div class="res-izq">
+          <div class="res-circulo-icono" style="background:#1e3a6e; color:white;">${iconoIA}</div>
+          <span>Computadora (IA)</span>
+        </div>
+        <div class="res-palabra-centro">${palabraMaquinaRonda}</div>
+        <div class="res-puntos-derecha ${colorPtsIA}">${textoSumaIA}</div>
       </div>
+      <div class="texto-total-grande t-amarillo">Total: ${puntosMaquinaCOM} pts</div>
     `
+    
     document.getElementById('btnSiguienteRonda').style.display = 'block'
   }
-
-  socket.on('resultadoRonda', function(datos) {
-    if (enModoVsCOM) return
-    clearInterval(intervalo)
-
-    document.getElementById('pantallaJuego').style.display = 'none'
-    document.getElementById('pantallaResultado').style.display = 'flex'
-    document.getElementById('tituloResultado').textContent = datos.mensaje
-
-    const contenedor = document.getElementById('respuestasJugadores')
-    contenedor.innerHTML = ''
-
-    datos.jugadores.forEach(function(jugador) {
-      const fila = document.createElement('div')
-      fila.className = 'fila-jugador'
-      fila.innerHTML = `
-        <span class="nombre-jugador">${jugador.nombre}</span>
-        <span class="puntos-jugador">${jugador.respuesta || '(sin respuesta)'} — ${jugador.puntos} pts</span>
-      `
-      contenedor.appendChild(fila)
-    })
-
-    if (datos.ganadorPartida) {
-      setTimeout(function() { mostrarVictoria(datos) }, 2000)
-    } else {
-      document.getElementById('btnSiguienteRonda').style.display = 'block'
-    }
-  })
 
   document.getElementById('btnSiguienteRonda').addEventListener('click', function() {
     if (enModoVsCOM) {
