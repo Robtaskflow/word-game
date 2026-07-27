@@ -589,6 +589,7 @@ const diccionario = {
 "Santander",
 "Santiago de Compostela",
 "Segovia",
+"Sevilla",
 "Sitges",
 "Soria",
 "Talavera de la Reina",
