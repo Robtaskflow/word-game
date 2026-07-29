@@ -32,6 +32,10 @@ function guardarUsuario(uid, nombre, email) {
     xp: 0,
     vidas: 6,
     tiempoUltimaPerdida: null,
+    diamantes: 0,          // ← nuevo
+    pistas: 3,
+    tiempoExtra: 3,
+    fantasmas: 3,
     creadoEn: firebase.firestore.FieldValue.serverTimestamp()
   })
 }
@@ -115,5 +119,32 @@ function perderMediaVida(uid) {
       vidas: nuevasVidas,
       tiempoUltimaPerdida: firebase.firestore.Timestamp.fromMillis(Date.now())
     })
+  })
+}
+// Obtiene los diamantes actuales del usuario
+function obtenerDiamantes(uid) {
+  return db.collection('usuarios').doc(uid).get().then(function(doc) {
+    return doc.data().diamantes || 0
+  })
+}
+
+// Añade diamantes al usuario
+function añadirDiamantes(uid, cantidad) {
+  return db.collection('usuarios').doc(uid).get().then(function(doc) {
+    const actuales = doc.data().diamantes || 0
+    return db.collection('usuarios').doc(uid).update({
+      diamantes: actuales + cantidad
+    })
+  })
+}
+
+// Gasta diamantes del usuario, devuelve false si no tiene suficientes
+function gastarDiamantes(uid, cantidad) {
+  return db.collection('usuarios').doc(uid).get().then(function(doc) {
+    const actuales = doc.data().diamantes || 0
+    if (actuales < cantidad) return false
+    return db.collection('usuarios').doc(uid).update({
+      diamantes: actuales - cantidad
+    }).then(function() { return true })
   })
 }

@@ -10,6 +10,9 @@
   <!-- BARRA DE USUARIO -->
   <div id="barraUsuario" style="display:none;">
     <div></div>
+    <div class="diamantes-contenedor" id="barraDiamantes">
+      💎 <span id="contadorDiamantes">0</span>
+    </div>
     <div class="barra-derecha-contenedor">
       <div class="vidas-contenedor" id="barraVidas">
         <div class="corazones-fila">
@@ -109,7 +112,7 @@
             <span class="btn-icono">🛒</span>
             <div>
               <span class="btn-texto">Tienda de Ayudas</span>
-              <span class="btn-descripcion">Compra pistas, bloqueos y fantasmas</span>
+              <span class="btn-descripcion">Compra con € o 💎 diamantes</span>
             </div>
           </div>
           <div class="btn-icono-derecha">🎁</div>
@@ -143,35 +146,32 @@
     <button class="btn-volver" id="btnVolverMenuModo">← Volver</button>
     <div class="contenedor">
       <h2 style="text-align:center; margin-bottom:24px; font-size:1.5rem;">Elige modo de juego</h2>
-
       <button class="btn-menu" id="btnPartidaRapida">
         <div class="btn-menu-contenido">
           <span class="btn-icono">⚡</span>
           <div>
             <span class="btn-texto">Partida Rápida</span>
-            <span class="btn-descripcion">Primera a 5 puntos · 50 XP</span>
+            <span class="btn-descripcion">Primera a 5 puntos · 50 XP · 💎 5</span>
           </div>
         </div>
         <div class="btn-icono-derecha">🎮</div>
       </button>
-
       <button class="btn-menu" id="btnPartidaClasificatoria">
         <div class="btn-menu-contenido">
           <span class="btn-icono">🏅</span>
           <div>
             <span class="btn-texto">Clasificatoria</span>
-            <span class="btn-descripcion">Mejor de 3 juegos · 210 XP</span>
+            <span class="btn-descripcion">Mejor de 3 juegos · 210 XP · 💎 10</span>
           </div>
         </div>
         <div class="btn-icono-derecha">🏆</div>
       </button>
-
       <button class="btn-menu" id="btnVsCOMMenu">
         <div class="btn-menu-contenido">
           <span class="btn-icono">🤖</span>
           <div>
             <span class="btn-texto">VS Computadora</span>
-            <span class="btn-descripcion">Pon a prueba tu velocidad · 30 XP</span>
+            <span class="btn-descripcion">Pon a prueba tu velocidad · 30 XP · 💎 1</span>
           </div>
         </div>
         <div class="btn-icono-derecha">🤖</div>
@@ -207,14 +207,11 @@
       <div class="tarjeta">
         <p class="cronometro" id="cronometro">0.0</p>
       </div>
-
-      <!-- BOTONES DE AYUDAS TÁCTICAS -->
       <div class="tarjeta" style="padding: 10px; display: flex; gap: 6px; justify-content: space-around;">
         <button id="btnAyudaPista" class="btn-ayuda" title="Revela la mitad de una palabra válida">💡 Pista (<span id="stockPista">0</span>)</button>
         <button id="btnAyudaTiempo" class="btn-ayuda" title="Bloquea al rival 5s en la sig. ronda">🔒 Bloquear (<span id="stockTiempo">0</span>)</button>
         <button id="btnAyudaFantasma" class="btn-ayuda" title="Inmunidad al fallo en esta ronda">👻 Fantasma (<span id="stockFantasma">0</span>)</button>
       </div>
-
       <div class="tarjeta">
         <p class="etiqueta">Tu respuesta</p>
         <input type="text" id="inputRespuesta" placeholder="Escribe la palabra" />
@@ -229,28 +226,52 @@
     <div class="contenedor">
       <div class="tarjeta" style="text-align:center;">
         <h2>🛒 Tienda de Ayudas</h2>
-        <p style="color:#a0a0b0; font-size:0.85rem; margin: 8px 0 20px 0;">Potencia tu juego con ayudas tácticas</p>
-        
-        <div style="background:#0f1b35; padding:12px; border-radius:8px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-          <div style="text-align:left;">
-            <strong>💡 Pista (Mitad palabra)</strong><br><span style="font-size:0.75rem; color:#a0a0b0;">Revela la mitad de forma aleatoria</span>
+        <p style="color:#a0a0b0; font-size:0.85rem; margin: 8px 0 4px 0;">Tus diamantes: 💎 <span id="diamantesTienda">0</span></p>
+        <p style="color:#a0a0b0; font-size:0.8rem; margin-bottom:16px;">Compra con dinero real o con diamantes</p>
+
+        <!-- PISTA -->
+        <div style="background:rgba(10,20,50,0.8); padding:12px; border-radius:8px; margin-bottom:12px; border:1px solid rgba(30,58,110,0.5);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="text-align:left;">
+              <strong>💡 Pista (Mitad palabra)</strong><br>
+              <span style="font-size:0.75rem; color:#a0a0b0;">Revela la mitad de forma aleatoria</span>
+            </div>
           </div>
-          <button id="btnComprarPista" style="flex:none; padding:8px 14px; font-size:0.9rem;">1,25 €</button>
+          <div style="display:flex; gap:8px;">
+            <button id="btnComprarPista" style="flex:1; padding:8px; font-size:0.85rem;">💳 1,25 €</button>
+            <button id="btnComprarPistaD" style="flex:1; padding:8px; font-size:0.85rem; background:linear-gradient(135deg,#1a5c1a,#0f3a0f); border:1px solid #2e8b2e;">💎 300</button>
+          </div>
         </div>
 
-        <div style="background:#0f1b35; padding:12px; border-radius:8px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-          <div style="text-align:left;">
-            <strong>🔒 Bloquear Rival (5s)</strong><br><span style="font-size:0.75rem; color:#a0a0b0;">Bloquea al rival al inicio de la siguiente ronda</span>
+        <!-- BLOQUEO -->
+        <div style="background:rgba(10,20,50,0.8); padding:12px; border-radius:8px; margin-bottom:12px; border:1px solid rgba(30,58,110,0.5);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="text-align:left;">
+              <strong>🔒 Bloquear Rival (5s)</strong><br>
+              <span style="font-size:0.75rem; color:#a0a0b0;">Bloquea al rival al inicio de la siguiente ronda</span>
+            </div>
           </div>
-          <button id="btnComprarTiempo" style="flex:none; padding:8px 14px; font-size:0.9rem;">1,25 €</button>
+          <div style="display:flex; gap:8px;">
+            <button id="btnComprarTiempo" style="flex:1; padding:8px; font-size:0.85rem;">💳 1,25 €</button>
+            <button id="btnComprarTiempoD" style="flex:1; padding:8px; font-size:0.85rem; background:linear-gradient(135deg,#1a5c1a,#0f3a0f); border:1px solid #2e8b2e;">💎 300</button>
+          </div>
         </div>
 
-        <div style="background:#0f1b35; padding:12px; border-radius:8px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
-          <div style="text-align:left;">
-            <strong>👻 Fantasma (Inmunidad)</strong><br><span style="font-size:0.75rem; color:#a0a0b0;">Evita restar puntos si fallas</span>
+        <!-- FANTASMA -->
+        <div style="background:rgba(10,20,50,0.8); padding:12px; border-radius:8px; margin-bottom:12px; border:1px solid rgba(30,58,110,0.5);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="text-align:left;">
+              <strong>👻 Fantasma (Inmunidad)</strong><br>
+              <span style="font-size:0.75rem; color:#a0a0b0;">Evita restar puntos si fallas</span>
+            </div>
           </div>
-          <button id="btnComprarFantasma" style="flex:none; padding:8px 14px; font-size:0.9rem;">1,25 €</button>
+          <div style="display:flex; gap:8px;">
+            <button id="btnComprarFantasma" style="flex:1; padding:8px; font-size:0.85rem;">💳 1,25 €</button>
+            <button id="btnComprarFantasmaD" style="flex:1; padding:8px; font-size:0.85rem; background:linear-gradient(135deg,#1a5c1a,#0f3a0f); border:1px solid #2e8b2e;">💎 250</button>
+          </div>
         </div>
+
+        <p style="font-size:0.72rem; color:#4a5568; margin-top:8px;">💎 Gana diamantes jugando: +5 partida rápida · +10 clasificatoria · +1 vs COM · +20 al subir de rango</p>
       </div>
     </div>
   </div>
@@ -300,9 +321,7 @@
           <span style="font-size:2rem">🏆</span>
           <p class="valor" style="margin-top:4px;">Ranking Mundial</p>
         </div>
-        <div id="rankingCargando" style="text-align:center; color:#a0a0b0; padding:20px;">
-          Cargando ranking...
-        </div>
+        <div id="rankingCargando" style="text-align:center; color:#a0a0b0; padding:20px;">Cargando ranking...</div>
         <div id="listaRanking"></div>
       </div>
       <div id="miPosicionContenedor" style="display:none;">
@@ -338,6 +357,7 @@
           <div class="barra-progreso" id="barraProgreso" style="width:0%"></div>
         </div>
         <div style="font-size:0.8rem; color:#a0a0b0;" id="perfilXPTexto">0 / 1000 XP para el siguiente nivel</div>
+        <div style="margin-top:10px; font-size:0.9rem; color:#7dde7d; font-weight:700;">💎 <span id="perfilDiamantes">0</span> diamantes</div>
       </div>
       <div class="stats-grid">
         <div class="stat-card stat-victorias">

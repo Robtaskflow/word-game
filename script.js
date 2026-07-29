@@ -1,10 +1,5 @@
-// Conectamos con el servidor mediante Socket.io
 const socket = io()
-
-// Guardamos nuestro nombre cuando nos unamos
 let miNombre = ''
-
-// Variables para el modo VS COM
 let enModoVsCOM = false
 let rondaCOM = 1
 let puntosUsuarioCOM = 0
@@ -14,23 +9,18 @@ let letraActualCOM = ''
 let timerCOM = null
 let usuarioYaRespondio = false
 let palabraMaquinaRonda = ''
-
-// Variables para modo clasificatoria
 let modoClasificatoria = false
 let juegoActual = 1
 let juegosGanadosLocal = 0
 let juegosGanadosRival = 0
-
-// Variables de ayudas tácticas
 let fantasmaActivo = false
 
 document.addEventListener('DOMContentLoaded', function() {
 
   let usuarioActual = null
-
   document.getElementById('pantallaBienvenida').style.display = 'none'
 
- auth.onAuthStateChanged(function(usuario) {
+  auth.onAuthStateChanged(function(usuario) {
     if (usuario) {
       obtenerUsuario(usuario.uid).then(function(doc) {
         if (doc.exists) {
@@ -40,24 +30,17 @@ document.addEventListener('DOMContentLoaded', function() {
           document.getElementById('pantallaLogin').style.display = 'none'
           document.getElementById('pantallaBienvenida').style.display = 'flex'
 
-          // --- NUEVO: ANIMACIÓN Y SONIDO DEL LOGO ---
           const titulo = document.getElementById('tituloBienvenida')
           if (titulo) {
-            // Reiniciamos la animación por si cierra sesión y vuelve a entrar
             titulo.classList.remove('animar-caida')
-            void titulo.offsetWidth // Esto fuerza al navegador a reiniciar el CSS
+            void titulo.offsetWidth
             titulo.classList.add('animar-caida')
-
-            // Cargamos el sonido y lo hacemos sonar sincronizado con el primer rebote (a los 400ms)
             const sonidoMuelle = new Audio('/muelle.mp3')
-            sonidoMuelle.volume = 0.5 // Volumen al 50% para que no asuste
-            
-            setTimeout(() => {
-              sonidoMuelle.play().catch(e => console.log('Sonido bloqueado por el navegador hasta que el usuario interactúe'))
-            }, 400) // 400ms coincide exactamente con el 40% del @keyframes
+            sonidoMuelle.volume = 0.5
+            setTimeout(function() {
+              sonidoMuelle.play().catch(function() {})
+            }, 400)
           }
-          // ------------------------------------------
-
         } else {
           document.getElementById('pantallaLogin').style.display = 'none'
           document.getElementById('pantallaElegirNombre').style.display = 'flex'
@@ -106,14 +89,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const nombre = document.getElementById('inputNombreUsuario').value.trim()
     if (!nombre) { alert('Escribe un nombre de usuario'); return }
     if (nombre.length < 3) { alert('El nombre debe tener al menos 3 caracteres'); return }
-
     nombreExiste(nombre).then(function(existe) {
       if (existe) {
         alert('Ese nombre ya está en uso, elige otro')
       } else {
         const usuario = auth.currentUser
         guardarUsuario(usuario.uid, nombre, usuario.email).then(function() {
-          usuarioActual = { nombreMostrar: nombre, xp: 0, victorias: 0, derrotas: 0, partidas: 0, vidas: 6, tiempoUltimaPerdida: null, pistas: 3, tiempoExtra: 3, fantasmas: 3 }
+          usuarioActual = { nombreMostrar: nombre, xp: 0, victorias: 0, derrotas: 0, partidas: 0, vidas: 6, tiempoUltimaPerdida: null, pistas: 3, tiempoExtra: 3, fantasmas: 3, diamantes: 0 }
           mostrarBarraUsuario()
           document.getElementById('pantallaElegirNombre').style.display = 'none'
           document.getElementById('pantallaBienvenida').style.display = 'flex'
@@ -138,12 +120,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const TIEMPO_RECARGA_MS = 30 * 60 * 1000
     let vidasActuales = usuarioActual.vidas !== undefined ? usuarioActual.vidas : 6
     let ultimoMs = obtenerMsTiempo(usuarioActual.tiempoUltimaPerdida)
-
     if (vidasActuales < VIDAS_MAXIMAS && ultimoMs) {
       const ahora = Date.now()
-      const tiempoPasado = ahora - ultimoMs
-      const mediasRecuperadas = Math.floor(tiempoPasado / TIEMPO_RECARGA_MS)
-
+      const mediasRecuperadas = Math.floor((ahora - ultimoMs) / TIEMPO_RECARGA_MS)
       if (mediasRecuperadas > 0) {
         vidasActuales = Math.min(VIDAS_MAXIMAS, vidasActuales + mediasRecuperadas)
         usuarioActual.vidas = vidasActuales
@@ -162,7 +141,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('corazon1').textContent = vidas >= 2 ? '❤️' : vidas >= 1 ? '💔' : '🖤'
     document.getElementById('corazon2').textContent = vidas >= 4 ? '❤️' : vidas >= 3 ? '💔' : '🖤'
     document.getElementById('corazon3').textContent = vidas >= 6 ? '❤️' : vidas >= 5 ? '💔' : '🖤'
-
     const tiempoEl = document.getElementById('tiempoRecargaVida')
     if (vidas >= 6) {
       tiempoEl.textContent = ''
@@ -170,8 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
       let ultimoMs = obtenerMsTiempo(usuarioActual.tiempoUltimaPerdida)
       if (ultimoMs) {
         const TIEMPO_RECARGA_MS = 30 * 60 * 1000
-        const msTranscurridos = (Date.now() - ultimoMs) % TIEMPO_RECARGA_MS
-        const msRestantes = TIEMPO_RECARGA_MS - msTranscurridos
+        const msRestantes = TIEMPO_RECARGA_MS - ((Date.now() - ultimoMs) % TIEMPO_RECARGA_MS)
         const minutos = Math.floor(msRestantes / 60000)
         const segundos = Math.floor((msRestantes % 60000) / 1000)
         tiempoEl.textContent = minutos + ':' + (segundos < 10 ? '0' : '') + segundos
@@ -205,6 +182,26 @@ document.addEventListener('DOMContentLoaded', function() {
     return db.collection('usuarios').doc(uid).update({ vidas: vidas, tiempoUltimaPerdida: tiempoUltimaPerdida })
   }
 
+  // ----- DIAMANTES -----
+
+  function actualizarDiamantesUI() {
+    const d = usuarioActual ? (usuarioActual.diamantes || 0) : 0
+    const el = document.getElementById('contadorDiamantes')
+    if (el) el.textContent = d
+    const elT = document.getElementById('diamantesTienda')
+    if (elT) elT.textContent = d
+    const elP = document.getElementById('perfilDiamantes')
+    if (elP) elP.textContent = d
+  }
+
+  function darDiamantes(cantidad) {
+    const usuario = auth.currentUser
+    if (!usuario || !usuarioActual) return
+    usuarioActual.diamantes = (usuarioActual.diamantes || 0) + cantidad
+    actualizarDiamantesUI()
+    añadirDiamantes(usuario.uid, cantidad)
+  }
+
   // ----- GESTIÓN DE STOCK DE AYUDAS -----
 
   function actualizarStockAyudas() {
@@ -232,6 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('btnTienda').addEventListener('click', function() {
     document.getElementById('pantallaMenu').style.display = 'none'
     document.getElementById('pantallaTienda').style.display = 'flex'
+    actualizarDiamantesUI()
   })
 
   document.getElementById('btnVolverTienda').addEventListener('click', function() {
@@ -254,9 +252,9 @@ document.addEventListener('DOMContentLoaded', function() {
         obtenerUsuario(usuario.uid).then(function(doc) {
           if (doc.exists) {
             let datosUsr = doc.data()
-            if (tipoComprado === 'pista') datosUsr.pistas = (datosUsr.pistas !== undefined ? datosUsr.pistas : 3) + 1
-            if (tipoComprado === 'tiempo') datosUsr.tiempoExtra = (datosUsr.tiempoExtra !== undefined ? datosUsr.tiempoExtra : 3) + 1
-            if (tipoComprado === 'fantasma') datosUsr.fantasmas = (datosUsr.fantasmas !== undefined ? datosUsr.fantasmas : 3) + 1
+            if (tipoComprado === 'pista') datosUsr.pistas = (datosUsr.pistas || 3) + 1
+            if (tipoComprado === 'tiempo') datosUsr.tiempoExtra = (datosUsr.tiempoExtra || 3) + 1
+            if (tipoComprado === 'fantasma') datosUsr.fantasmas = (datosUsr.fantasmas || 3) + 1
             db.collection('usuarios').doc(usuario.uid).update({
               pistas: datosUsr.pistas, tiempoExtra: datosUsr.tiempoExtra, fantasmas: datosUsr.fantasmas
             }).then(function() {
@@ -270,9 +268,65 @@ document.addEventListener('DOMContentLoaded', function() {
     })
   }
 
+  // Compra con dinero real
   document.getElementById('btnComprarPista').addEventListener('click', function() { iniciarCompraReal('pista') })
   document.getElementById('btnComprarTiempo').addEventListener('click', function() { iniciarCompraReal('tiempo') })
   document.getElementById('btnComprarFantasma').addEventListener('click', function() { iniciarCompraReal('fantasma') })
+
+  // Compra con diamantes
+  document.getElementById('btnComprarPistaD').addEventListener('click', function() {
+    const usuario = auth.currentUser
+    if (!usuario || !usuarioActual) return
+    const d = usuarioActual.diamantes || 0
+    if (d < 300) { alert('¡No tienes suficientes diamantes! Necesitas 💎 300 y tienes 💎 ' + d); return }
+    gastarDiamantes(usuario.uid, 300).then(function(exito) {
+      if (exito) {
+        usuarioActual.pistas = (usuarioActual.pistas || 0) + 1
+        usuarioActual.diamantes = d - 300
+        db.collection('usuarios').doc(usuario.uid).update({ pistas: usuarioActual.pistas })
+        actualizarStockAyudas()
+        actualizarDiamantesUI()
+        mostrarBarraUsuario()
+        alert('💡 ¡Pista comprada! Tienes ' + usuarioActual.pistas + ' pistas.')
+      }
+    })
+  })
+
+  document.getElementById('btnComprarTiempoD').addEventListener('click', function() {
+    const usuario = auth.currentUser
+    if (!usuario || !usuarioActual) return
+    const d = usuarioActual.diamantes || 0
+    if (d < 300) { alert('¡No tienes suficientes diamantes! Necesitas 💎 300 y tienes 💎 ' + d); return }
+    gastarDiamantes(usuario.uid, 300).then(function(exito) {
+      if (exito) {
+        usuarioActual.tiempoExtra = (usuarioActual.tiempoExtra || 0) + 1
+        usuarioActual.diamantes = d - 300
+        db.collection('usuarios').doc(usuario.uid).update({ tiempoExtra: usuarioActual.tiempoExtra })
+        actualizarStockAyudas()
+        actualizarDiamantesUI()
+        mostrarBarraUsuario()
+        alert('🔒 ¡Bloqueo comprado! Tienes ' + usuarioActual.tiempoExtra + ' bloqueos.')
+      }
+    })
+  })
+
+  document.getElementById('btnComprarFantasmaD').addEventListener('click', function() {
+    const usuario = auth.currentUser
+    if (!usuario || !usuarioActual) return
+    const d = usuarioActual.diamantes || 0
+    if (d < 250) { alert('¡No tienes suficientes diamantes! Necesitas 💎 250 y tienes 💎 ' + d); return }
+    gastarDiamantes(usuario.uid, 250).then(function(exito) {
+      if (exito) {
+        usuarioActual.fantasmas = (usuarioActual.fantasmas || 0) + 1
+        usuarioActual.diamantes = d - 250
+        db.collection('usuarios').doc(usuario.uid).update({ fantasmas: usuarioActual.fantasmas })
+        actualizarStockAyudas()
+        actualizarDiamantesUI()
+        mostrarBarraUsuario()
+        alert('👻 ¡Fantasma comprado! Tienes ' + usuarioActual.fantasmas + ' fantasmas.')
+      }
+    })
+  })
 
   // ----- AYUDAS EN PARTIDA -----
 
@@ -280,18 +334,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!usuarioActual) return
     if (usuarioActual.pistas === undefined) usuarioActual.pistas = 3
     if (usuarioActual.pistas <= 0) { alert('¡No te quedan pistas!'); return }
-
     const lista = diccionario[categoriaActualCOM] || []
     const filtradas = lista.filter(function(p) {
       return p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toUpperCase() === letraActualCOM
     })
-
     if (filtradas.length > 0) {
       const palabra = filtradas[Math.floor(Math.random() * filtradas.length)]
       let pistaParcial = ''
-      palabra.split('').forEach(function(letra) {
-        pistaParcial += Math.random() < 0.5 ? letra : '_'
-      })
+      palabra.split('').forEach(function(letra) { pistaParcial += Math.random() < 0.5 ? letra : '_' })
       usuarioActual.pistas -= 1
       guardarInventarioEnFirestore()
       document.getElementById('inputRespuesta').value = pistaParcial
@@ -326,12 +376,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const nombreBloqueador = datos && datos.nombreBloqueador ? datos.nombreBloqueador : 'tu rival'
     document.getElementById('nombreBloqueador').textContent = nombreBloqueador
     cartel.style.display = 'flex'
-
     const input = document.getElementById('inputRespuesta')
     const btnEnv = document.getElementById('btnEnviar')
     if (input) input.disabled = true
     if (btnEnv) btnEnv.disabled = true
-
     let cuenta = 5
     const cuentaEl = document.getElementById('cuentaAtrasBloqueo')
     const contador = setInterval(function() {
@@ -357,6 +405,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('barraXP').textContent = (usuarioActual.xp || 0) + ' XP'
     actualizarInterfazVidas()
     actualizarStockAyudas()
+    actualizarDiamantesUI()
   }
 
   function mostrarPerfil() {
@@ -372,9 +421,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('perfilPartidas').textContent = usuarioActual.partidas || 0
     const winrate = usuarioActual.partidas > 0 ? Math.round((usuarioActual.victorias / usuarioActual.partidas) * 100) : 0
     document.getElementById('perfilWinrate').textContent = winrate + '%'
+    actualizarDiamantesUI()
     if (progreso.necesaria) {
-      const porcentaje = Math.round((progreso.actual / progreso.necesaria) * 100)
-      document.getElementById('barraProgreso').style.width = porcentaje + '%'
+      document.getElementById('barraProgreso').style.width = Math.round((progreso.actual / progreso.necesaria) * 100) + '%'
       document.getElementById('perfilXPTexto').textContent = progreso.actual + ' / ' + progreso.necesaria + ' XP para el siguiente rango'
     } else {
       document.getElementById('barraProgreso').style.width = '100%'
@@ -404,7 +453,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaMenu').style.display = 'flex'
   })
 
-  // Botón Jugar → abre selección de modo
   document.getElementById('btnJugar').addEventListener('click', function() {
     document.getElementById('pantallaMenu').style.display = 'none'
     document.getElementById('pantallaSeleccionModo').style.display = 'flex'
@@ -415,7 +463,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaMenu').style.display = 'flex'
   })
 
-  // Partida Rápida
   document.getElementById('btnPartidaRapida').addEventListener('click', function() {
     gestionarRecargaVidas()
     if (!intentarGastarVida()) return
@@ -428,7 +475,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (btnUnirseEl) btnUnirseEl.disabled = false
   })
 
-  // Partida Clasificatoria
   document.getElementById('btnPartidaClasificatoria').addEventListener('click', function() {
     gestionarRecargaVidas()
     if (!intentarGastarVida()) return
@@ -444,7 +490,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (btnUnirseEl) btnUnirseEl.disabled = false
   })
 
-  // VS COM desde menú de selección
   document.getElementById('btnVsCOMMenu').addEventListener('click', function() {
     gestionarRecargaVidas()
     if (!intentarGastarVida()) return
@@ -469,27 +514,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function iniciarRondaCOM() {
     if (puntosUsuarioCOM >= 5 || puntosMaquinaCOM >= 5) { finalizarPartidaCOM(); return }
-
     document.getElementById('rondaTexto').textContent = 'Ronda ' + rondaCOM + ' (Tú: ' + puntosUsuarioCOM + ' pts | IA: ' + puntosMaquinaCOM + ' pts)'
     usuarioYaRespondio = false
     palabraMaquinaRonda = ''
-
     const categoriasKeys = Object.keys(diccionario)
     categoriaActualCOM = categoriasKeys[Math.floor(Math.random() * categoriasKeys.length)]
     const letras = 'ABCDEFGHIJKLMNOPRSTV'
     letraActualCOM = letras.charAt(Math.floor(Math.random() * letras.length))
-
     document.getElementById('categoria').textContent = categoriaActualCOM
     document.getElementById('letra').textContent = letraActualCOM
     document.getElementById('inputRespuesta').value = ''
     document.getElementById('btnEnviar').disabled = false
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'flex'
-
     clearInterval(intervalo)
     tiempo = 0
     document.getElementById('cronometro').textContent = '0.0'
-
     intervalo = setInterval(function() {
       tiempo += 0.1
       document.getElementById('cronometro').textContent = tiempo.toFixed(1)
@@ -505,7 +545,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
     }, 100)
-
     const tiempoReaccionIA = Math.random() * 10000 + 15000
     timerCOM = setTimeout(function() { maquinaPiensaYSale() }, tiempoReaccionIA)
   }
@@ -543,7 +582,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('rankingCargando').style.display = 'block'
     document.getElementById('listaRanking').innerHTML = ''
     document.getElementById('miPosicionContenedor').style.display = 'none'
-
     db.collection('usuarios').orderBy('xp', 'desc').limit(100).get()
       .then(function(snapshot) {
         document.getElementById('rankingCargando').style.display = 'none'
@@ -551,26 +589,21 @@ document.addEventListener('DOMContentLoaded', function() {
         lista.innerHTML = ''
         let miPosicionEnTop100 = false
         let posicion = 1
-
         snapshot.forEach(function(doc) {
           const datos = doc.data()
           const esYo = usuarioActual && datos.nombreUsuario === usuarioActual.nombreUsuario
           const rango = calcularRango(datos.xp || 0)
           if (esYo) miPosicionEnTop100 = true
-
           const fila = document.createElement('div')
           fila.className = 'ranking-fila' + (esYo ? ' ranking-yo' : '')
-
           let clasePosicion = 'ranking-posicion'
           if (posicion === 1) clasePosicion += ' oro'
           else if (posicion === 2) clasePosicion += ' plata'
           else if (posicion === 3) clasePosicion += ' bronce'
-
           let medallaTexto = posicion
           if (posicion === 1) medallaTexto = '🥇'
           else if (posicion === 2) medallaTexto = '🥈'
           else if (posicion === 3) medallaTexto = '🥉'
-
           fila.innerHTML = `
             <span class="${clasePosicion}">${medallaTexto}</span>
             <span class="ranking-rango">${rango.icono}</span>
@@ -580,11 +613,9 @@ document.addEventListener('DOMContentLoaded', function() {
           lista.appendChild(fila)
           posicion++
         })
-
         if (!miPosicionEnTop100 && usuarioActual) buscarMiPosicion()
       })
       .catch(function(error) {
-        console.log('Error cargando ranking:', error)
         document.getElementById('rankingCargando').textContent = 'Error al cargar el ranking.'
       })
   }
@@ -605,7 +636,6 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
         `
       })
-      .catch(function(error) { console.log('Error buscando posición:', error) })
   }
 
   // ----- AJUSTES Y BOTONES VOLVER -----
@@ -635,7 +665,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaMenu').style.display = 'flex'
   })
 
-  // ----- SOCKETS PARTIDA ONLINE -----
+  // ----- SOCKETS -----
 
   socket.on('esperando', function() { console.log('Esperando a otro jugador...') })
 
@@ -663,11 +693,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('btnEnviar').disabled = false
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'flex'
-
     clearInterval(intervalo)
     tiempo = 0
     document.getElementById('cronometro').textContent = '0.0'
-
     intervalo = setInterval(function() {
       tiempo += 0.1
       document.getElementById('cronometro').textContent = tiempo.toFixed(1)
@@ -688,19 +716,16 @@ document.addEventListener('DOMContentLoaded', function() {
   function enviarRespuesta() {
     const respuesta = document.getElementById('inputRespuesta').value.trim()
     if (!respuesta) { alert('Escribe una palabra antes de enviar'); return }
-
     if (enModoVsCOM) {
       if (usuarioYaRespondio) return
       clearTimeout(timerCOM)
       usuarioYaRespondio = true
       clearInterval(intervalo)
-
       const letraIngresada = respuesta.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toUpperCase()
       const listaCategoria = diccionario[categoriaActualCOM] || []
       const esValida = letraIngresada === letraActualCOM && listaCategoria.some(function(p) {
         return p.toLowerCase() === respuesta.toLowerCase()
       })
-
       if (esValida) {
         puntosUsuarioCOM += 1
       } else {
@@ -708,7 +733,6 @@ document.addEventListener('DOMContentLoaded', function() {
         puntosUsuarioCOM = Math.max(0, puntosUsuarioCOM + ptsPerdidos)
       }
       fantasmaActivo = false
-
       if (!palabraMaquinaRonda) {
         const aciertaIA = Math.random() < 0.75
         const filtradas = listaCategoria.filter(function(p) {
@@ -722,7 +746,6 @@ document.addEventListener('DOMContentLoaded', function() {
           puntosMaquinaCOM = Math.max(0, puntosMaquinaCOM - 1)
         }
       }
-
       mostrarResultadoCOM(respuesta, esValida, esValida ? 1 : -1)
     } else {
       document.getElementById('btnEnviar').disabled = true
@@ -732,32 +755,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
+  function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaResultado').style.display = 'flex'
-    
     const titulo = document.getElementById('tituloResultado')
     titulo.textContent = validaUser ? 'PALABRA CORRECTA (+1)' : (ptsUser === 0 ? 'PALABRA INCORRECTA (INMUNE)' : 'PALABRA INCORRECTA (-1)')
-    titulo.style.color = validaUser ? '#2ecc71' : '#ff5e5e' 
-
+    titulo.style.color = validaUser ? '#2ecc71' : '#ff5e5e'
     const contenedor = document.getElementById('respuestasJugadores')
-    
-    // Usuario
     const claseUser = validaUser ? 'fila-verde' : 'fila-roja'
     const iconoUser = validaUser ? '✓' : '!'
     const bgIconoUser = validaUser ? '#2ecc71' : '#e74c3c'
     const textoSumaUser = validaUser ? 'Total: +1 pts' : (ptsUser === 0 ? 'Total: 0 pts' : 'Total: -1 pts')
     const colorPtsUser = validaUser ? 't-verde' : 't-rojo'
-
-    // IA
     const iaValida = (palabraMaquinaRonda !== '(La IA falló)' && palabraMaquinaRonda !== '(Tiempo agotado)')
     const claseIA = iaValida ? 'fila-verde' : 'fila-roja'
-    const iconoIA = '🤖'
     const textoSumaIA = iaValida ? 'Total: +1 pts' : 'Total: -1 pts'
     const colorPtsIA = iaValida ? 't-verde' : 't-rojo'
-
     contenedor.innerHTML = `
-      <!-- Fila Usuario -->
       <div class="fila-resultado-custom ${claseUser}">
         <div class="res-izq">
           <div class="res-circulo-icono" style="background:${bgIconoUser}; color:white;">${iconoUser}</div>
@@ -767,11 +781,9 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
         <div class="res-puntos-derecha ${colorPtsUser}">${textoSumaUser}</div>
       </div>
       <div class="texto-total-grande t-blanco">Total: ${puntosUsuarioCOM} pts</div>
-
-      <!-- Fila IA -->
       <div class="fila-resultado-custom ${claseIA}">
         <div class="res-izq">
-          <div class="res-circulo-icono" style="background:#1e3a6e; color:white;">${iconoIA}</div>
+          <div class="res-circulo-icono" style="background:#1e3a6e; color:white;">🤖</div>
           <span>Computadora (IA)</span>
         </div>
         <div class="res-palabra-centro">${palabraMaquinaRonda}</div>
@@ -779,9 +791,32 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
       </div>
       <div class="texto-total-grande t-amarillo">Total: ${puntosMaquinaCOM} pts</div>
     `
-    
     document.getElementById('btnSiguienteRonda').style.display = 'block'
   }
+
+  socket.on('resultadoRonda', function(datos) {
+    if (enModoVsCOM) return
+    clearInterval(intervalo)
+    document.getElementById('pantallaJuego').style.display = 'none'
+    document.getElementById('pantallaResultado').style.display = 'flex'
+    document.getElementById('tituloResultado').textContent = datos.mensaje
+    const contenedor = document.getElementById('respuestasJugadores')
+    contenedor.innerHTML = ''
+    datos.jugadores.forEach(function(jugador) {
+      const fila = document.createElement('div')
+      fila.className = 'fila-jugador'
+      fila.innerHTML = `
+        <span class="nombre-jugador">${jugador.nombre}</span>
+        <span class="puntos-jugador">${jugador.respuesta || '(sin respuesta)'} — ${jugador.puntos} pts</span>
+      `
+      contenedor.appendChild(fila)
+    })
+    if (datos.ganadorPartida) {
+      setTimeout(function() { mostrarVictoria(datos) }, 2000)
+    } else {
+      document.getElementById('btnSiguienteRonda').style.display = 'block'
+    }
+  })
 
   document.getElementById('btnSiguienteRonda').addEventListener('click', function() {
     if (enModoVsCOM) {
@@ -799,24 +834,22 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
   socket.on('victoriaRival', function(datos) {
     if (enModoVsCOM) return
     clearInterval(intervalo)
-
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaResultado').style.display = 'none'
-
     const usuario = auth.currentUser
     if (usuario && usuarioActual) {
       const xpGanado = modoClasificatoria ? 210 : 50
+      const diamantesGanados = modoClasificatoria ? 10 : 5
       actualizarXP(usuario.uid, xpGanado, true).then(function() {
         return obtenerUsuario(usuario.uid)
       }).then(function(doc) {
         usuarioActual = doc.data()
         mostrarBarraUsuario()
       })
+      darDiamantes(diamantesGanados)
     }
-
     document.getElementById('pantallaVictoria').style.display = 'flex'
     document.getElementById('nombreGanador').textContent = datos.nombreGanador
-
     const contenedor = document.getElementById('puntosFinales')
     contenedor.innerHTML = `
       <div class="fila-puntos-final">
@@ -824,16 +857,13 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
         <span class="puntos">Victoria por abandono</span>
       </div>
     `
-
     document.getElementById('btnJugarOtraVez').textContent = 'Volver al menú'
     document.getElementById('btnJugarOtraVez').onclick = function() { location.reload() }
-
     let cuenta = 5
     const textoContador = document.createElement('p')
     textoContador.style.cssText = 'text-align:center; color:#1a2e5a; margin-top:16px; font-size:0.9rem;'
     textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
     document.querySelector('.tarjeta-victoria').appendChild(textoContador)
-
     const contador = setInterval(function() {
       cuenta -= 1
       textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
@@ -847,18 +877,15 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaVictoria').style.display = 'flex'
-
     const ganoUser = puntosUsuarioCOM > puntosMaquinaCOM
     document.getElementById('nombreGanador').textContent = ganoUser
       ? (usuarioActual ? usuarioActual.nombreMostrar : '¡Tú!')
       : 'Computadora (IA)'
-
     const contenedor = document.getElementById('puntosFinales')
     contenedor.innerHTML = `
       <div class="fila-puntos-final"><span class="nombre">Tus puntos:</span><span class="puntos">${puntosUsuarioCOM} pts</span></div>
       <div class="fila-puntos-final"><span class="nombre">Puntos de la IA:</span><span class="puntos">${puntosMaquinaCOM} pts</span></div>
     `
-
     const usuario = auth.currentUser
     if (usuario && ganoUser && usuarioActual) {
       const xpAnterior = usuarioActual.xp || 0
@@ -875,22 +902,21 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
           db.collection('usuarios').doc(usuario.uid).update({
             pistas: nuevoDatos.pistas, tiempoExtra: nuevoDatos.tiempoExtra, fantasmas: nuevoDatos.fantasmas
           })
-          alert('🎉 ¡Has subido de rango! +1 Pista, +1 Bloqueo y +1 Fantasma de recompensa.')
+          darDiamantes(20)
+          alert('🎉 ¡Has subido de rango! +1 Pista, +1 Bloqueo, +1 Fantasma y 💎 20 diamantes de recompensa.')
         }
         usuarioActual = nuevoDatos
         mostrarBarraUsuario()
       })
+      darDiamantes(1)
     }
-
     document.getElementById('btnJugarOtraVez').textContent = 'Volver al menú'
     document.getElementById('btnJugarOtraVez').onclick = function() { location.reload() }
-
     let cuenta = 5
     const textoContador = document.createElement('p')
     textoContador.style.cssText = 'text-align:center; color:#1a2e5a; margin-top:16px; font-size:0.9rem;'
     textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
     document.querySelector('.tarjeta-victoria').appendChild(textoContador)
-
     const contador = setInterval(function() {
       cuenta -= 1
       textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
@@ -906,8 +932,6 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
       const esGanador = datos.jugadores.find(function(j) {
         return j.nombre === usuarioActual.nombreMostrar && j.puntos >= 5
       })
-
-      // En clasificatoria la XP se da al final de la serie, no por juego
       if (!modoClasificatoria) {
         const cantidad = esGanador ? 50 : -10
         const xpAnterior = usuarioActual.xp || 0
@@ -924,21 +948,17 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
             db.collection('usuarios').doc(usuario.uid).update({
               pistas: nuevoDatos.pistas, tiempoExtra: nuevoDatos.tiempoExtra, fantasmas: nuevoDatos.fantasmas
             })
-            alert('🎉 ¡Has subido de rango! +1 Pista, +1 Bloqueo y +1 Fantasma de recompensa.')
+            darDiamantes(20)
+            alert('🎉 ¡Has subido de rango! +1 Pista, +1 Bloqueo, +1 Fantasma y 💎 20 diamantes de recompensa.')
           }
           usuarioActual = nuevoDatos
           mostrarBarraUsuario()
         })
+        if (esGanador) darDiamantes(5)
       }
-
-      // Lógica de clasificatoria
       if (modoClasificatoria) {
-        if (esGanador) {
-          juegosGanadosLocal += 1
-        } else {
-          juegosGanadosRival += 1
-        }
-
+        if (esGanador) juegosGanadosLocal += 1
+        else juegosGanadosRival += 1
         if (juegosGanadosLocal >= 2 || juegosGanadosRival >= 2) {
           mostrarVictoriaFinalClasificatoria()
           return
@@ -950,14 +970,11 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
       }
     }
 
-    // Victoria normal (partida rápida)
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaVictoria').style.display = 'flex'
-
     const ganador = datos.jugadores.reduce(function(a, b) { return a.puntos > b.puntos ? a : b })
     document.getElementById('nombreGanador').textContent = ganador.nombre
-
     const contenedor = document.getElementById('puntosFinales')
     contenedor.innerHTML = ''
     datos.jugadores.forEach(function(jugador) {
@@ -966,16 +983,13 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
       fila.innerHTML = `<span class="nombre">${jugador.nombre}</span><span class="puntos">${jugador.puntos} pts</span>`
       contenedor.appendChild(fila)
     })
-
     document.getElementById('btnJugarOtraVez').textContent = 'Volver al menú'
     document.getElementById('btnJugarOtraVez').onclick = function() { location.reload() }
-
     let cuenta = 5
     const textoContador = document.createElement('p')
     textoContador.style.cssText = 'text-align:center; color:#1a2e5a; margin-top:16px; font-size:0.9rem;'
     textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
     document.querySelector('.tarjeta-victoria').appendChild(textoContador)
-
     const contador = setInterval(function() {
       cuenta -= 1
       textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
@@ -983,16 +997,14 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
     }, 1000)
   }
 
-  // ----- CLASIFICATORIA: ENTRE JUEGOS -----
+  // ----- ENTRE JUEGOS CLASIFICATORIA -----
 
   function mostrarEntreJuegos() {
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaVictoria').style.display = 'flex'
-
     const tituloJuego = juegoActual === 3 ? '¡Juego de desempate!' : 'Juego ' + (juegoActual - 1) + ' completado'
     document.getElementById('nombreGanador').textContent = tituloJuego
-
     const contenedor = document.getElementById('puntosFinales')
     contenedor.innerHTML = `
       <div class="fila-puntos-final">
@@ -1004,7 +1016,6 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
         <span class="puntos">${juegosGanadosRival} juegos ganados</span>
       </div>
     `
-
     const btnOtraVez = document.getElementById('btnJugarOtraVez')
     btnOtraVez.textContent = juegoActual === 3 ? '¡Jugar desempate! 🔥' : 'Siguiente juego →'
     btnOtraVez.onclick = function() {
@@ -1013,19 +1024,16 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
     }
   }
 
-  // ----- CLASIFICATORIA: VICTORIA FINAL -----
+  // ----- VICTORIA FINAL CLASIFICATORIA -----
 
   function mostrarVictoriaFinalClasificatoria() {
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaVictoria').style.display = 'flex'
-
     const ganoSerie = juegosGanadosLocal > juegosGanadosRival
     document.getElementById('nombreGanador').textContent = ganoSerie
       ? (usuarioActual ? usuarioActual.nombreMostrar : 'Tú')
       : 'Rival'
-
-    // Damos XP al ganador de la serie
     const usuario = auth.currentUser
     if (usuario && usuarioActual && ganoSerie) {
       const xpAnterior = usuarioActual.xp || 0
@@ -1042,11 +1050,13 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
           db.collection('usuarios').doc(usuario.uid).update({
             pistas: nuevoDatos.pistas, tiempoExtra: nuevoDatos.tiempoExtra, fantasmas: nuevoDatos.fantasmas
           })
-          alert('🎉 ¡Has subido de rango! +1 Pista, +1 Bloqueo y +1 Fantasma de recompensa.')
+          darDiamantes(20)
+          alert('🎉 ¡Has subido de rango! +1 Pista, +1 Bloqueo, +1 Fantasma y 💎 20 diamantes de recompensa.')
         }
         usuarioActual = nuevoDatos
         mostrarBarraUsuario()
       })
+      darDiamantes(10)
     } else if (usuario && usuarioActual && !ganoSerie) {
       actualizarXP(usuario.uid, -10, false).then(function() {
         return obtenerUsuario(usuario.uid)
@@ -1055,7 +1065,6 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
         mostrarBarraUsuario()
       })
     }
-
     const contenedor = document.getElementById('puntosFinales')
     contenedor.innerHTML = `
       <div class="fila-puntos-final">
@@ -1067,21 +1076,18 @@ function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
         <span class="puntos">${juegosGanadosRival} juegos</span>
       </div>
       <div class="fila-puntos-final" style="margin-top:8px;">
-        <span class="nombre">${ganoSerie ? '🏅 +210 XP por victoria clasificatoria' : '-10 XP'}</span>
+        <span class="nombre">${ganoSerie ? '🏅 +210 XP · 💎 +10 diamantes' : '-10 XP'}</span>
         <span class="puntos"></span>
       </div>
     `
-
     const btnOtraVez = document.getElementById('btnJugarOtraVez')
     btnOtraVez.textContent = 'Volver al menú'
     btnOtraVez.onclick = function() { location.reload() }
-
     let cuenta = 8
     const textoContador = document.createElement('p')
     textoContador.style.cssText = 'text-align:center; color:#1a2e5a; margin-top:16px; font-size:0.9rem;'
     textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
     document.querySelector('.tarjeta-victoria').appendChild(textoContador)
-
     const contador = setInterval(function() {
       cuenta -= 1
       textoContador.textContent = 'Volviendo al menú en ' + cuenta + ' segundos...'
