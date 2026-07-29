@@ -1101,6 +1101,6 @@ document.addEventListener('DOMContentLoaded', function() {
     navigator.serviceWorker.register('/sw.js')
       .then(function() { console.log('Service Worker registrado correctamente') })
       .catch(function(error) { console.log('Error SW:', error) })
-  }
+  } c
 
 }) // cierre del DOMContentLoaded
