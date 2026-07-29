@@ -509,14 +509,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('textoEspera').style.display = 'block'
     document.getElementById('btnUnirse').disabled = true
   })
-  
-  document.getElementById('btnSalirPartida').addEventListener('click', () => {
-  const seguro = confirm("¿Estás seguro de que quieres abandonar? Perderás la partida.");
-  if (seguro) {
-    document.getElementById('pantallaJuego').style.display = 'none';
-    document.getElementById('pantallaMenu').style.display = 'flex';
-  }
-});
 
   // ----- VS COM -----
 
