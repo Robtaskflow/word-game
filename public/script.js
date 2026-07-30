@@ -513,6 +513,14 @@ document.addEventListener('DOMContentLoaded', function() {
   function iniciarRondaCOM() {
     if (puntosUsuarioCOM >= 5 || puntosMaquinaCOM >= 5) { finalizarPartidaCOM(); return }
     document.getElementById('rondaTexto').textContent = 'Ronda ' + rondaCOM + ' (Tú: ' + puntosUsuarioCOM + ' pts | IA: ' + puntosMaquinaCOM + ' pts)'
+    
+    // Asegurar que el avatar del jugador y el Mago se muestren correctamente al iniciar la ronda
+    const miAvatar = localStorage.getItem('wordgame_avatar') || 'avatar1.png';
+    const avatarJugador = document.getElementById('avatarLuchaJugador');
+    if (avatarJugador) {
+        avatarJugador.style.backgroundImage = `url('${miAvatar}')`;
+    }
+
     usuarioYaRespondio = false
     palabraMaquinaRonda = ''
     const categoriasKeys = Object.keys(diccionario)
@@ -570,6 +578,90 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
+    const avatarJugador = document.getElementById('avatarLuchaJugador');
+    const avatarCOM = document.getElementById('avatarLuchaCOM');
+    const iaValida = (palabraMaquinaRonda !== '(La IA falló)' && palabraMaquinaRonda !== '(Tiempo agotado)' && palabraMaquinaRonda !== '(La IA respondió primero)');
+    
+    // 1. Limpiar y activar las animaciones de golpe en la arena de lucha
+    if (avatarJugador && avatarCOM) {
+        avatarJugador.classList.remove('anim-atacar-der', 'anim-dano');
+        avatarCOM.classList.remove('anim-atacar-izq', 'anim-dano');
+        void avatarJugador.offsetWidth; 
+        void avatarCOM.offsetWidth;
+
+        if (validaUser && !iaValida) {
+            // Ganas tú: Embistes y el Mago (IA) recibe daño
+            avatarJugador.classList.add('anim-atacar-der');
+            setTimeout(() => avatarCOM.classList.add('anim-dano'), 250);
+        } else if (!validaUser && iaValida) {
+            // Gana COM: El Mago embiste y tú recibes daño
+            avatarCOM.classList.add('anim-atacar-izq');
+            setTimeout(() => avatarJugador.classList.add('anim-dano'), 250);
+        } else {
+            // Empate o ambos fallan: Chocan en el centro
+            avatarJugador.classList.add('anim-atacar-der');
+            avatarCOM.classList.add('anim-atacar-izq');
+        }
+    }
+
+    // 2. Esperamos 900ms para apreciar el golpe antes de pasar a la pantalla de resultados
+    setTimeout(() => {
+        document.getElementById('pantallaJuego').style.display = 'none';
+        document.getElementById('pantallaResultado').style.display = 'flex';
+        
+        const titulo = document.getElementById('tituloResultado');
+        titulo.textContent = validaUser ? 'PALABRA CORRECTA (+1)' : (ptsUser === 0 ? 'PALABRA INCORRECTA (INMUNE)' : 'PALABRA INCORRECTA (-1)');
+        titulo.style.color = validaUser ? '#2ecc71' : '#ff5e5e'; 
+
+        const contenedor = document.getElementById('respuestasJugadores');
+        
+        const claseUser = validaUser ? 'fila-verde' : 'fila-roja';
+        const colorBadgeUser = validaUser ? '#2ecc71' : '#e74c3c';
+        const textoSumaUser = validaUser ? 'Total: +1 pts' : (ptsUser === 0 ? 'Total: 0 pts' : 'Total: -1 pts');
+        const colorPtsUser = validaUser ? 't-verde' : 't-rojo';
+
+        const claseIA = iaValida ? 'fila-verde' : 'fila-roja';
+        const textoSumaIA = iaValida ? 'Total: +1 pts' : 'Total: -1 pts';
+        const colorPtsIA = iaValida ? 't-verde' : 't-rojo';
+
+        // Recuperamos tu foto personalizada para el icono del resultado
+        const iconoFinalJugador = localStorage.getItem('wordgame_avatar') || 'avatar1.png';
+
+        contenedor.innerHTML = `
+          <!-- Fila de Usuario -->
+          <div class="fila-resultado-custom ${claseUser}">
+            <div class="res-izq">
+              <div style="position:relative; display:inline-block;">
+                <div class="res-circulo-icono" style="background-image:url('${iconoFinalJugador}'); background-size:cover; background-position:center; border: 1px solid #1e3a6e;"></div>
+                <div style="position:absolute; bottom:-2px; right:-2px; width:12px; height:12px; background:${colorBadgeUser}; border-radius:50%; border:2px solid #16213e;"></div>
+              </div>
+              <span>Tú</span>
+            </div>
+            <div class="res-palabra-centro">${respUser || '--- --'}</div>
+            <div class="res-puntos-derecha ${colorPtsUser}">${textoSumaUser}</div>
+          </div>
+          <div class="texto-total-grande t-blanco">Total: ${puntosUsuarioCOM} pts</div>
+
+          <!-- Fila de la Computadora (IA) con el Mago -->
+          <div class="fila-resultado-custom ${claseIA}">
+            <div class="res-izq">
+              <div style="position:relative; display:inline-block;">
+                <div class="res-circulo-icono" style="background-image:url('mago.jpg'); background-size:cover; background-position:center; border: 1px solid #1e3a6e;"></div>
+                <div style="position:absolute; bottom:-2px; right:-2px; width:12px; height:12px; background:${iaValida ? '#2ecc71' : '#e74c3c'}; border-radius:50%; border:2px solid #16213e;"></div>
+              </div>
+              <span>Mago (IA)</span>
+            </div>
+            <div class="res-palabra-centro">${palabraMaquinaRonda}</div>
+            <div class="res-puntos-derecha ${colorPtsIA}">${textoSumaIA}</div>
+          </div>
+          <div class="texto-total-grande t-amarillo">Total: ${puntosMaquinaCOM} pts</div>
+        `;
+        
+        document.getElementById('btnSiguienteRonda').style.display = 'block';
+    }, 900);
+  }
+  
   // ----- RANKING -----
 
   document.getElementById('btnClasificatoria').addEventListener('click', function() {
@@ -1095,16 +1187,25 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(function(error) { console.log('Error SW:', error) })
   }
 
- // ▼▼ CÓDIGO DE LOS AVATARES (ACTUALIZADO PARA IMÁGENES PNG/JPG) ▼▼
-  // Pon el nombre exacto de tu primera imagen por defecto aquí (por ejemplo avatar1.png o avatar1.jpg)
+ // ▼▼ CÓDIGO DE LOS AVATARES (ACTUALIZADO CON ARENA DE LUCHA) ▼▼
   let miAvatar = localStorage.getItem('wordgame_avatar') || 'avatar1.png'; 
   
   const barraRango = document.getElementById('barraRango');
-  if (barraRango) {
-      // Como ahora es una imagen, usamos backgroundImage en lugar de textContent
-      barraRango.style.backgroundImage = `url('${miAvatar}')`;
-      barraRango.textContent = ''; // Borramos cualquier texto o emoji viejo por si acaso
+  const avatarLuchaJugador = document.getElementById('avatarLuchaJugador'); // Elemento grande de la partida
+
+  // Función para aplicar el avatar en todos los sitios donde aparece
+  function actualizarAvatarEnPantalla(avatarUrl) {
+      if (barraRango) {
+          barraRango.style.backgroundImage = `url('${avatarUrl}')`;
+          barraRango.textContent = ''; 
+      }
+      if (avatarLuchaJugador) {
+          avatarLuchaJugador.style.backgroundImage = `url('${avatarUrl}')`;
+      }
   }
+
+  // Aplicar al cargar la página
+  actualizarAvatarEnPantalla(miAvatar);
 
   const botonesAvatar = document.querySelectorAll('.avatar-opcion');
   botonesAvatar.forEach(boton => {
@@ -1113,25 +1214,18 @@ document.addEventListener('DOMContentLoaded', function() {
       boton.classList.add('seleccionado');
     }
 
-    // Al hacer clic en un personaje
+    // Al hacer clic en un personaje en la pantalla de perfil
     boton.addEventListener('click', (e) => {
-      // Quitar el brillo a todos
       botonesAvatar.forEach(b => b.classList.remove('seleccionado'));
-      
-      // Darle el brillo al que hemos tocado
       e.currentTarget.classList.add('seleccionado');
       
-      // Guardar la nueva imagen
       miAvatar = e.currentTarget.dataset.avatar;
       localStorage.setItem('wordgame_avatar', miAvatar);
       
-      // Cambiar la imagen inmediatamente en la barra superior del juego
-      if (barraRango) {
-          barraRango.style.backgroundImage = `url('${miAvatar}')`;
-          barraRango.textContent = '';
-      }
+      // Actualizar en tiempo real
+      actualizarAvatarEnPantalla(miAvatar);
     });
   });
   // ▲▲ HASTA AQUÍ EL CÓDIGO DE AVATARES ▲▲
-
+  
 }) // cierre del DOMContentLoaded

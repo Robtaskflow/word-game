@@ -1049,3 +1049,51 @@ button:disabled {
   box-shadow: 0 0 15px rgba(201, 168, 76, 0.8), inset 0 0 10px rgba(201, 168, 76, 0.5);
   transform: scale(1.1);
 }
+
+/* ===== ARENA DE LUCHA EN PARTIDA ===== */
+.arena-lucha {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 420px;
+  padding: 0 20px;
+  margin-bottom: 5px;
+  position: relative;
+  z-index: 10;
+}
+
+.avatar-lucha {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  border: 3px solid #1e3a6e;
+  box-shadow: 0 0 15px rgba(0,0,0,0.5);
+  background-color: #0a0f1e;
+}
+
+/* Animación: Embestir hacia la derecha (Tú) */
+@keyframes ataqueDerecha {
+  0% { transform: translateX(0) scale(1); }
+  40% { transform: translateX(130px) scale(1.15); z-index: 20; }
+  100% { transform: translateX(0) scale(1); }
+}
+
+/* Animación: Embestir hacia la izquierda (COM) */
+@keyframes ataqueIzquierda {
+  0% { transform: translateX(0) scale(1); }
+  40% { transform: translateX(-130px) scale(1.15); z-index: 20; }
+  100% { transform: translateX(0) scale(1); }
+}
+
+/* Animación: Recibir el golpe (parpadeo rojo y temblor) */
+@keyframes recibirDano {
+  0%, 100% { transform: translateX(0); filter: brightness(1); }
+  20%, 60% { transform: translateX(-6px) rotate(-5deg); filter: brightness(0.5) sepia(1) hue-rotate(-50deg) saturate(5); border-color: #ff5e5e; }
+  40%, 80% { transform: translateX(6px) rotate(5deg); }
+}
+
+.anim-atacar-der { animation: ataqueDerecha 0.7s cubic-bezier(0.25, 1, 0.5, 1); }
+.anim-atacar-izq { animation: ataqueIzquierda 0.7s cubic-bezier(0.25, 1, 0.5, 1); }
+.anim-dano { animation: recibirDano 0.5s ease-in-out; }
