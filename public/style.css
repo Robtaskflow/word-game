@@ -1024,14 +1024,14 @@ button:disabled {
 
 /* ===== SELECCIÓN DE AVATAR (PERFIL) ===== */
 .avatar-opcion {
-  font-size: 2.5rem;
   width: 60px;
   height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10, 15, 30, 0.8);
-  border: 2px solid #1e3a6e;
+  /* Cambiamos 'background' por 'background-color' para no borrar la imagen */
+  background-color: rgba(10, 15, 30, 0.8);
+  border: 3px solid #1e3a6e;
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1045,7 +1045,7 @@ button:disabled {
 /* Estilo cuando el avatar está seleccionado */
 .avatar-opcion.seleccionado {
   border-color: #c9a84c;
-  background: linear-gradient(135deg, rgba(201, 168, 76, 0.2), rgba(168, 130, 58, 0.4));
-  box-shadow: 0 0 15px rgba(201, 168, 76, 0.5);
+  /* Eliminamos el background lineal que tapaba la foto y dejamos solo el resplandor exterior e interior */
+  box-shadow: 0 0 15px rgba(201, 168, 76, 0.8), inset 0 0 10px rgba(201, 168, 76, 0.5);
   transform: scale(1.1);
 }
