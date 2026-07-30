@@ -15,6 +15,11 @@ let juegosGanadosLocal = 0
 let juegosGanadosRival = 0
 let fantasmaActivo = false
 
+// Función global para quitar acentos
+function quitarAcentos(texto) {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
 document.addEventListener('DOMContentLoaded', function() {
 
   let usuarioActual = null
@@ -29,17 +34,11 @@ document.addEventListener('DOMContentLoaded', function() {
           mostrarBarraUsuario()
           document.getElementById('pantallaLogin').style.display = 'none'
           document.getElementById('pantallaBienvenida').style.display = 'flex'
-
           const titulo = document.getElementById('tituloBienvenida')
           if (titulo) {
             titulo.classList.remove('animar-caida')
             void titulo.offsetWidth
             titulo.classList.add('animar-caida')
-            const sonidoMuelle = new Audio('/muelle.mp3')
-            sonidoMuelle.volume = 0.5
-            setTimeout(function() {
-              sonidoMuelle.play().catch(function() {})
-            }, 400)
           }
         } else {
           document.getElementById('pantallaLogin').style.display = 'none'
@@ -268,12 +267,10 @@ document.addEventListener('DOMContentLoaded', function() {
     })
   }
 
-  // Compra con dinero real
   document.getElementById('btnComprarPista').addEventListener('click', function() { iniciarCompraReal('pista') })
   document.getElementById('btnComprarTiempo').addEventListener('click', function() { iniciarCompraReal('tiempo') })
   document.getElementById('btnComprarFantasma').addEventListener('click', function() { iniciarCompraReal('fantasma') })
 
-  // Compra con diamantes
   document.getElementById('btnComprarPistaD').addEventListener('click', function() {
     const usuario = auth.currentUser
     if (!usuario || !usuarioActual) return
@@ -335,8 +332,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (usuarioActual.pistas === undefined) usuarioActual.pistas = 3
     if (usuarioActual.pistas <= 0) { alert('¡No te quedan pistas!'); return }
     const lista = diccionario[categoriaActualCOM] || []
+    const letraBuscada = quitarAcentos(letraActualCOM.toLowerCase())
     const filtradas = lista.filter(function(p) {
-      return p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toUpperCase() === letraActualCOM
+      return quitarAcentos(p).charAt(0).toLowerCase() === letraBuscada
     })
     if (filtradas.length > 0) {
       const palabra = filtradas[Math.floor(Math.random() * filtradas.length)]
@@ -537,10 +535,10 @@ document.addEventListener('DOMContentLoaded', function() {
         clearInterval(intervalo)
         if (!usuarioYaRespondio) {
           usuarioYaRespondio = true
-          palabraMaquinaRonda = '(Tiempo agotado)'
           let ptsPerdidos = fantasmaActivo ? 0 : -1
           fantasmaActivo = false
           puntosUsuarioCOM = Math.max(0, puntosUsuarioCOM + ptsPerdidos)
+          maquinaPiensaYSale()
           mostrarResultadoCOM('(Sin respuesta)', false, ptsPerdidos)
         }
       }
@@ -550,11 +548,11 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function maquinaPiensaYSale() {
-    if (usuarioYaRespondio) return
+    if (palabraMaquinaRonda) return
     const listaCategoria = diccionario[categoriaActualCOM] || []
-    const letraBuscada = letraActualCOM.toLowerCase()
+    const letraBuscada = quitarAcentos(letraActualCOM.toLowerCase())
     const filtradas = listaCategoria.filter(function(palabra) {
-      return palabra.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toLowerCase() === letraBuscada
+      return quitarAcentos(palabra).charAt(0).toLowerCase() === letraBuscada
     })
     const acierta = Math.random() < 0.75
     if (acierta && filtradas.length > 0) {
@@ -564,10 +562,12 @@ document.addEventListener('DOMContentLoaded', function() {
       palabraMaquinaRonda = '(La IA falló)'
       puntosMaquinaCOM = Math.max(0, puntosMaquinaCOM - 1)
     }
-    usuarioYaRespondio = true
-    clearInterval(intervalo)
-    clearTimeout(timerCOM)
-    mostrarResultadoCOM('(La IA respondió primero)', false, 0)
+    if (!usuarioYaRespondio) {
+      usuarioYaRespondio = true
+      clearInterval(intervalo)
+      clearTimeout(timerCOM)
+      mostrarResultadoCOM('(La IA respondió primero)', false, 0)
+    }
   }
 
   // ----- RANKING -----
@@ -615,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         if (!miPosicionEnTop100 && usuarioActual) buscarMiPosicion()
       })
-      .catch(function(error) {
+      .catch(function() {
         document.getElementById('rankingCargando').textContent = 'Error al cargar el ranking.'
       })
   }
@@ -716,16 +716,24 @@ document.addEventListener('DOMContentLoaded', function() {
   function enviarRespuesta() {
     const respuesta = document.getElementById('inputRespuesta').value.trim()
     if (!respuesta) { alert('Escribe una palabra antes de enviar'); return }
+
     if (enModoVsCOM) {
       if (usuarioYaRespondio) return
       clearTimeout(timerCOM)
       usuarioYaRespondio = true
       clearInterval(intervalo)
-      const letraIngresada = respuesta.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toUpperCase()
+
+      // Validación SIN acentos igual que el servidor
+      const respuestaLimpia = quitarAcentos(respuesta.trim().toLowerCase())
+      const letraLimpia = quitarAcentos(letraActualCOM.toLowerCase())
       const listaCategoria = diccionario[categoriaActualCOM] || []
-      const esValida = letraIngresada === letraActualCOM && listaCategoria.some(function(p) {
-        return p.toLowerCase() === respuesta.toLowerCase()
+
+      const empiezaBien = respuestaLimpia.charAt(0) === letraLimpia
+      const estaEnDiccionario = listaCategoria.some(function(p) {
+        return quitarAcentos(p.toLowerCase()) === respuestaLimpia
       })
+      const esValida = empiezaBien && estaEnDiccionario
+
       if (esValida) {
         puntosUsuarioCOM += 1
       } else {
@@ -733,10 +741,12 @@ document.addEventListener('DOMContentLoaded', function() {
         puntosUsuarioCOM = Math.max(0, puntosUsuarioCOM + ptsPerdidos)
       }
       fantasmaActivo = false
+
+      // La IA responde si no lo ha hecho ya
       if (!palabraMaquinaRonda) {
         const aciertaIA = Math.random() < 0.75
         const filtradas = listaCategoria.filter(function(p) {
-          return p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toLowerCase() === letraActualCOM.toLowerCase()
+          return quitarAcentos(p).charAt(0).toLowerCase() === letraLimpia
         })
         if (aciertaIA && filtradas.length > 0) {
           palabraMaquinaRonda = filtradas[Math.floor(Math.random() * filtradas.length)]
@@ -746,6 +756,7 @@ document.addEventListener('DOMContentLoaded', function() {
           puntosMaquinaCOM = Math.max(0, puntosMaquinaCOM - 1)
         }
       }
+
       mostrarResultadoCOM(respuesta, esValida, esValida ? 1 : -1)
     } else {
       document.getElementById('btnEnviar').disabled = true
@@ -762,34 +773,16 @@ document.addEventListener('DOMContentLoaded', function() {
     titulo.textContent = validaUser ? 'PALABRA CORRECTA (+1)' : (ptsUser === 0 ? 'PALABRA INCORRECTA (INMUNE)' : 'PALABRA INCORRECTA (-1)')
     titulo.style.color = validaUser ? '#2ecc71' : '#ff5e5e'
     const contenedor = document.getElementById('respuestasJugadores')
-    const claseUser = validaUser ? 'fila-verde' : 'fila-roja'
-    const iconoUser = validaUser ? '✓' : '!'
-    const bgIconoUser = validaUser ? '#2ecc71' : '#e74c3c'
-    const textoSumaUser = validaUser ? 'Total: +1 pts' : (ptsUser === 0 ? 'Total: 0 pts' : 'Total: -1 pts')
-    const colorPtsUser = validaUser ? 't-verde' : 't-rojo'
-    const iaValida = (palabraMaquinaRonda !== '(La IA falló)' && palabraMaquinaRonda !== '(Tiempo agotado)')
-    const claseIA = iaValida ? 'fila-verde' : 'fila-roja'
-    const textoSumaIA = iaValida ? 'Total: +1 pts' : 'Total: -1 pts'
-    const colorPtsIA = iaValida ? 't-verde' : 't-rojo'
+    const iaValida = palabraMaquinaRonda && palabraMaquinaRonda !== '(La IA falló)' && palabraMaquinaRonda !== '(Tiempo agotado)' && palabraMaquinaRonda !== '(La IA respondió primero)'
     contenedor.innerHTML = `
-      <div class="fila-resultado-custom ${claseUser}">
-        <div class="res-izq">
-          <div class="res-circulo-icono" style="background:${bgIconoUser}; color:white;">${iconoUser}</div>
-          <span>Tú</span>
-        </div>
-        <div class="res-palabra-centro">${respUser || '---'}</div>
-        <div class="res-puntos-derecha ${colorPtsUser}">${textoSumaUser}</div>
+      <div class="fila-jugador" style="padding:10px 0; border-bottom:1px solid rgba(30,58,110,0.4);">
+        <span class="nombre-jugador">Tú</span>
+        <span class="puntos-jugador" style="color:${validaUser ? '#2ecc71' : '#ff5e5e'}">${respUser} — ${puntosUsuarioCOM} pts</span>
       </div>
-      <div class="texto-total-grande t-blanco">Total: ${puntosUsuarioCOM} pts</div>
-      <div class="fila-resultado-custom ${claseIA}">
-        <div class="res-izq">
-          <div class="res-circulo-icono" style="background:#1e3a6e; color:white;">🤖</div>
-          <span>Computadora (IA)</span>
-        </div>
-        <div class="res-palabra-centro">${palabraMaquinaRonda}</div>
-        <div class="res-puntos-derecha ${colorPtsIA}">${textoSumaIA}</div>
+      <div class="fila-jugador" style="padding:10px 0;">
+        <span class="nombre-jugador">🤖 Computadora</span>
+        <span class="puntos-jugador" style="color:${iaValida ? '#2ecc71' : '#ff5e5e'}">${palabraMaquinaRonda} — ${puntosMaquinaCOM} pts</span>
       </div>
-      <div class="texto-total-grande t-amarillo">Total: ${puntosMaquinaCOM} pts</div>
     `
     document.getElementById('btnSiguienteRonda').style.display = 'block'
   }
@@ -969,7 +962,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
     }
-
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaVictoria').style.display = 'flex'
@@ -1101,6 +1093,6 @@ document.addEventListener('DOMContentLoaded', function() {
     navigator.serviceWorker.register('/sw.js')
       .then(function() { console.log('Service Worker registrado correctamente') })
       .catch(function(error) { console.log('Error SW:', error) })
-  } c
+  }
 
 }) // cierre del DOMContentLoaded
