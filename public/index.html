@@ -7,7 +7,7 @@
         <link rel="stylesheet" href="style.css">  
     </head>
 <body>
-  <!-- BARRA DE USUARIO -->
+ <!-- BARRA DE USUARIO -->
   <div id="barraUsuario" style="display:none;">
     <div></div>
     <div class="diamantes-contenedor" id="barraDiamantes">
@@ -23,7 +23,10 @@
         <span id="tiempoRecargaVida" class="tiempo-recarga"></span>
       </div>
       <div class="usuario-info" id="btnVerPerfil">
-        <span id="barraRango">🥉</span>
+        
+        <!-- ESTA ES LA LÍNEA QUE HA CAMBIADO (Ahora es un div para la imagen) -->
+        <div id="barraRango" style="width: 24px; height: 24px; border-radius: 50%; background-size: cover; background-position: center; flex-shrink: 0;"></div>
+        
         <span id="barraNombre">—</span>
         <span id="barraXP" class="barra-xp-texto">0 XP</span>
       </div>
@@ -359,16 +362,19 @@
         <div style="font-size:0.8rem; color:#a0a0b0;" id="perfilXPTexto">0 / 1000 XP para el siguiente nivel</div>
         <div style="margin-top:10px; font-size:0.9rem; color:#7dde7d; font-weight:700;">💎 <span id="perfilDiamantes">0</span> diamantes</div>
       </div>
-      <!-- NUEVO: SELECCIÓN DE AVATAR -->
+      
+      <!-- NUEVO: SELECCIÓN DE AVATAR (IMÁGENES JPG) -->
       <div class="tarjeta" style="text-align: center; margin-bottom: 16px;">
         <p class="etiqueta" style="margin-bottom: 12px;">Elige tu Personaje</p>
         <div style="display: flex; justify-content: center; gap: 15px;">
-          <div class="avatar-opcion" data-avatar="🥷">🥷</div>
-          <div class="avatar-opcion" data-avatar="🧙‍♂️">🧙‍♂️</div>
-          <div class="avatar-opcion" data-avatar="🤺">🤺</div>
+          <!-- Personaje 1 -->
+          <div class="avatar-opcion" data-avatar="ninja1.png" style="background-image: url('avatar1.jpg'); background-size: cover; background-position: center;"></div>
+          <!-- Personaje 2 -->
+          <div class="avatar-opcion" data-avatar="mago1.png" style="background-image: url('avatar2.jpg'); background-size: cover; background-position: center;"></div>
         </div>
-        
       </div>
+      <!-- FIN SELECCIÓN DE AVATAR -->
+
       <div class="stats-grid">
         <div class="stat-card stat-victorias">
           <div class="stat-numero" id="perfilVictorias">0</div>

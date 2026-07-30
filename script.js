@@ -1095,37 +1095,43 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(function(error) { console.log('Error SW:', error) })
   }
 
-  // --- SISTEMA DE SELECCIÓN DE AVATAR ---
-// 1. Cargamos el avatar guardado o ponemos el Ninja por defecto
-let miAvatar = localStorage.getItem('wordgame_avatar') || '🥷'; 
-
-// Lo mostramos en la barra superior al cargar
-document.getElementById('barraRango').textContent = miAvatar;
-
-// 2. Lógica para seleccionar avatar en el perfil
-const botonesAvatar = document.querySelectorAll('.avatar-opcion');
-
-botonesAvatar.forEach(boton => {
-  // Iluminar el que ya teníamos guardado
-  if(boton.dataset.avatar === miAvatar) {
-    boton.classList.add('seleccionado');
+ // ▼▼ CÓDIGO DE LOS AVATARES (ACTUALIZADO PARA IMÁGENES PNG/JPG) ▼▼
+  // Pon el nombre exacto de tu primera imagen por defecto aquí (por ejemplo avatar1.png o avatar1.jpg)
+  let miAvatar = localStorage.getItem('wordgame_avatar') || 'avatar1.png'; 
+  
+  const barraRango = document.getElementById('barraRango');
+  if (barraRango) {
+      // Como ahora es una imagen, usamos backgroundImage en lugar de textContent
+      barraRango.style.backgroundImage = `url('${miAvatar}')`;
+      barraRango.textContent = ''; // Borramos cualquier texto o emoji viejo por si acaso
   }
 
-  // Al hacer clic en un personaje
-  boton.addEventListener('click', (e) => {
-    // Quitar el brillo a todos
-    botonesAvatar.forEach(b => b.classList.remove('seleccionado'));
-    
-    // Darle el brillo al que hemos tocado
-    e.currentTarget.classList.add('seleccionado');
-    
-    // Guardar el nuevo avatar
-    miAvatar = e.currentTarget.dataset.avatar;
-    localStorage.setItem('wordgame_avatar', miAvatar);
-    
-    // Cambiarlo inmediatamente en la barra superior del juego
-    document.getElementById('barraRango').textContent = miAvatar;
+  const botonesAvatar = document.querySelectorAll('.avatar-opcion');
+  botonesAvatar.forEach(boton => {
+    // Iluminar el que ya teníamos guardado
+    if(boton.dataset.avatar === miAvatar) {
+      boton.classList.add('seleccionado');
+    }
+
+    // Al hacer clic en un personaje
+    boton.addEventListener('click', (e) => {
+      // Quitar el brillo a todos
+      botonesAvatar.forEach(b => b.classList.remove('seleccionado'));
+      
+      // Darle el brillo al que hemos tocado
+      e.currentTarget.classList.add('seleccionado');
+      
+      // Guardar la nueva imagen
+      miAvatar = e.currentTarget.dataset.avatar;
+      localStorage.setItem('wordgame_avatar', miAvatar);
+      
+      // Cambiar la imagen inmediatamente en la barra superior del juego
+      if (barraRango) {
+          barraRango.style.backgroundImage = `url('${miAvatar}')`;
+          barraRango.textContent = '';
+      }
+    });
   });
-});
+  // ▲▲ HASTA AQUÍ EL CÓDIGO DE AVATARES ▲▲
 
 }) // cierre del DOMContentLoaded
