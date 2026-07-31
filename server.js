@@ -1,49 +1,32 @@
-// Importamos las librerias necesarias
 const express = require('express')
 const http = require('http')
 const { Server } = require('socket.io')
-
-// Importamos el diccionario de palabras
 const diccionario = require('./diccionario')
 
-// Creamos la app de Express
 const app = express()
-
-// Creamos un servidor HTTP a partir de la app
 const servidor = http.createServer(app)
-
-// Conectamos Socket.io a ese servidor
 const io = new Server(servidor)
 
-// Inicializamos Stripe con tu clave secreta de variable de entorno
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
-// Servimos los archivos de la carpeta actual y de public
 app.use(express.static(__dirname))
 app.use(express.static(__dirname + '/public'))
 
-// Lista de categorías y letras posibles
 const categorias = [
-  'Animales', 'Paises', 'Comidas', 'Nombres',
-  'Ciudades', 'Frutas', 'Deportes', 'Profesiones',
-  'Colores', 'Peliculas', 'Objetos de casa'
+  'Animales', 'Paises', 'Comidas', 'Nombres', 'Ciudades', 
+  'Frutas', 'Deportes', 'Profesiones', 'Colores', 'Peliculas', 'Objetos de casa'
 ]
+
 const letras = 'ABCDEFGHIJLMNOPRSTV'.split('')
-
-// Jugador esperando pareja
 let esperando = null
-
-// Guardamos todas las partidas activas
 let partidas = {}
-
-// Guardamos los cegamientos pendientes por sala para la siguiente ronda
 let cegosPendientes = {}
 
-// Cuando un jugador se conecta
 io.on('connection', function(socket) {
   console.log('Nuevo jugador conectado:', socket.id)
 
-  socket.on('unirse', function(nombre) {
+  socket.on('unirse', function(datos) {
+    const nombre = typeof datos === 'string' ? datos : datos.nombre
     socket.nombre = nombre
 
     if (esperando === null) {
@@ -68,10 +51,8 @@ io.on('connection', function(socket) {
         respuestasRonda: {}
       }
 
-      io.to(sala).emit('partidaEncontrada', {
-        jugador1: jugador1.nombre,
-        jugador2: jugador2.nombre
-      })
+      jugador1.emit('partidaEncontrada', { jugadores: [jugador1.nombre, jugador2.nombre] })
+      jugador2.emit('partidaEncontrada', { jugadores: [jugador1.nombre, jugador2.nombre] })
 
       iniciarRonda(sala)
     }
@@ -80,19 +61,16 @@ io.on('connection', function(socket) {
   socket.on('responder', function(datos) {
     const sala = socket.sala
     if (!sala || !partidas[sala]) return
-
     const partida = partidas[sala]
     if (partida.primerEnResponder) return
-
     partida.primerEnResponder = socket.id
-    
+
     const respuestaTexto = typeof datos === 'object' ? datos.respuesta : datos
     partida.respuestasRonda[socket.id] = respuestaTexto
 
     if (partida.temporizador) {
       clearTimeout(partida.temporizador)
     }
-
     resolverRonda(sala, respuestaTexto, socket.id)
   })
 
@@ -101,32 +79,30 @@ io.on('connection', function(socket) {
     if (!sala || !partidas[sala]) return
     iniciarRonda(sala)
   })
-  
+
   socket.on('listoSiguienteJuego', function() {
     const sala = socket.sala
     if (!sala || !partidas[sala]) return
-
-    // Reiniciamos los puntos de los jugadores para el nuevo juego
     partidas[sala].jugadores.forEach(function(j) {
       j.puntos = 0
       j.eliminado = false
     })
     partidas[sala].primerEnResponder = null
     partidas[sala].respuestasRonda = {}
-
     iniciarRonda(sala)
   })
 
-  // ----- EVENTO PARA CEGAR AL RIVAL EN LA SIGUIENTE RONDA -----
- socket.on('cegarRival', function() {
+  socket.on('cegarRival', function() {
     const sala = socket.sala
     if (!sala || !partidas[sala]) return
-    cegosPendientes[sala] = { idAtacante: socket.id, nombreAtacante: socket.nombre }
+    cegosPendientes[sala] = {
+      idAtacante: socket.id,
+      nombreAtacante: socket.nombre
+    }
   })
-  // ----- PASARELA DE PAGO STRIPE (1,25 €) -----
-  socket.on('comprarAyuda', async (datos) => {
+
+  socket.on('comprarAyuda', async function(datos) {
     const { tipoAyuda, userId } = datos
-    
     let nombreProducto = 'Pista'
     if (tipoAyuda === 'tiempo') nombreProducto = 'Cegar Rival'
     if (tipoAyuda === 'fantasma') nombreProducto = 'Fantasma'
@@ -137,18 +113,15 @@ io.on('connection', function(socket) {
         line_items: [{
           price_data: {
             currency: 'eur',
-            product_data: {
-              name: `1x ${nombreProducto} - Word Game`,
-            },
-            unit_amount: 125,
+            product_data: { name: `1x ${nombreProducto} - Word Game` },
+            unit_amount: 125
           },
-          quantity: 1,
+          quantity: 1
         }],
         mode: 'payment',
         success_url: `https://tu-dominio.com/index.html?pago=exito&tipo=${tipoAyuda}&user=${userId}`,
-        cancel_url: `https://tu-dominio.com/index.html?pago=cancelado`,
+        cancel_url: `https://tu-dominio.com/index.html?pago=cancelado`
       })
-
       socket.emit('redirigirPago', session.url)
     } catch (error) {
       console.error('Error al crear la sesión de pago:', error)
@@ -156,51 +129,35 @@ io.on('connection', function(socket) {
   })
 
   socket.on('disconnect', function() {
-    if (esperando === socket) {
-      esperando = null
-    }
-
+    if (esperando === socket) esperando = null
     if (socket.sala && partidas[socket.sala]) {
       const partida = partidas[socket.sala]
-
-      // Buscamos al rival (el que no se desconectó)
-      const rival = partida.jugadores.find(function(j) {
-        return j.id !== socket.id
-      })
-
+      const rival = partida.jugadores.find(j => j.id !== socket.id)
       if (rival) {
-        // Damos la victoria al rival
         socket.to(socket.sala).emit('victoriaRival', {
           mensaje: 'Tu rival se ha desconectado. ¡Ganas la partida!',
           nombreGanador: rival.nombre,
-          jugadores: partida.jugadores.map(function(j) {
-            return {
-              nombre: j.nombre,
-              puntos: j.id === rival.id ? 5 : j.puntos,
-              respuesta: null
-            }
-          })
+          jugadores: partida.jugadores.map(j => ({
+            nombre: j.nombre,
+            puntos: j.id === rival.id ? 5 : j.puntos,
+            respuesta: null
+          }))
         })
       }
-
       delete partidas[socket.sala]
       delete cegosPendientes[socket.sala]
     }
-
     console.log('Jugador desconectado:', socket.id)
   })
 })
 
-// Función que arranca una ronda nueva
 function iniciarRonda(sala) {
   const partida = partidas[sala]
   if (!partida) return
 
-  // Si hay un cegamiento pendiente de la ronda anterior, se aplica al rival al iniciar esta
- if (cegosPendientes[sala]) {
+  if (cegosPendientes[sala]) {
     const { idAtacante, nombreAtacante } = cegosPendientes[sala]
     delete cegosPendientes[sala]
-
     io.in(sala).fetchSockets().then(function(sockets) {
       sockets.forEach(function(s) {
         if (s.id !== idAtacante) {
@@ -220,22 +177,15 @@ function iniciarRonda(sala) {
   partida.primerEnResponder = null
   partida.respuestasRonda = {}
 
-  if (partida.temporizador) {
-    clearTimeout(partida.temporizador)
-  }
+  if (partida.temporizador) clearTimeout(partida.temporizador)
 
   partida.temporizador = setTimeout(function() {
     if (!partida.primerEnResponder) {
       io.to(sala).emit('resultadoRonda', {
         mensaje: 'Tiempo agotado. Nadie respondió a tiempo.',
-        jugadores: partida.jugadores.map(function(j) {
-          return {
-            nombre: j.nombre,
-            puntos: j.puntos,
-            eliminado: j.eliminado,
-            respuesta: null
-          }
-        }),
+        jugadores: partida.jugadores.map(j => ({
+          nombre: j.nombre, puntos: j.puntos, eliminado: j.eliminado, respuesta: null
+        })),
         ganadorPartida: false
       })
     }
@@ -244,34 +194,26 @@ function iniciarRonda(sala) {
   io.to(sala).emit('nuevaRonda', { categoria: categoria, letra: letra })
 }
 
-// Función que elimina acentos de un texto
 function quitarAcentos(texto) {
   return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
-// Función que decide quién ganó la ronda
 function resolverRonda(sala, respuesta, idJugador) {
   const partida = partidas[sala]
   if (!partida) return
 
-  const jugador = partida.jugadores.find(function(j) { return j.id === idJugador })
+  const jugador = partida.jugadores.find(j => j.id === idJugador)
   const categoria = partida.categoriaActual
   const letra = partida.letraActual
 
   const respuestaLimpia = quitarAcentos(respuesta.trim().toLowerCase())
   const letraLimpia = quitarAcentos(letra.toLowerCase())
-
   const empiezaBien = respuestaLimpia[0] === letraLimpia
-
   const palabrasCategoria = diccionario[categoria] || []
-  const estaEnDiccionario = palabrasCategoria.some(function(palabra) {
-    return quitarAcentos(palabra.toLowerCase()) === respuestaLimpia
-  })
-
+  const estaEnDiccionario = palabrasCategoria.some(p => quitarAcentos(p.toLowerCase()) === respuestaLimpia)
   const esValida = empiezaBien && estaEnDiccionario
 
   let mensaje = ''
-
   if (esValida) {
     jugador.puntos += 1
     mensaje = jugador.nombre + ' respondió bien (' + respuesta + ') y suma 1 punto'
@@ -281,7 +223,6 @@ function resolverRonda(sala, respuesta, idJugador) {
     } else {
       mensaje = jugador.nombre + ' usó una palabra que no es válida para ' + categoria
     }
-
     if (jugador.puntos === 0) {
       jugador.eliminado = true
       mensaje += ' — ¡queda eliminado!'
@@ -297,14 +238,12 @@ function resolverRonda(sala, respuesta, idJugador) {
     ganadorPartida = true
   }
 
-  const jugadoresConRespuesta = partida.jugadores.map(function(j) {
-    return {
-      nombre: j.nombre,
-      puntos: j.puntos,
-      eliminado: j.eliminado,
-      respuesta: partida.respuestasRonda[j.id] || null
-    }
-  })
+  const jugadoresConRespuesta = partida.jugadores.map(j => ({
+    nombre: j.nombre,
+    puntos: j.puntos,
+    eliminado: j.eliminado,
+    respuesta: partida.respuestasRonda[j.id] || null
+  }))
 
   io.to(sala).emit('resultadoRonda', {
     mensaje: mensaje,
@@ -313,7 +252,6 @@ function resolverRonda(sala, respuesta, idJugador) {
   })
 }
 
-// Arrancamos el servidor en el puerto 3000
 servidor.listen(process.env.PORT || 3000, function() {
   console.log('Servidor escuchando en el puerto ' + (process.env.PORT || 3000))
 })
