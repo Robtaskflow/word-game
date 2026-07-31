@@ -195,42 +195,48 @@
     </div>
   </div>
 
- <!-- PANTALLA JUEGO -->
+<!-- PANTALLA JUEGO -->
   <div class="pantalla" id="pantallaJuego" style="display:none;">
     
-    <!-- Botón de salir que teníamos -->
+    <!-- Botón de salir pequeño arriba a la izquierda -->
     <button class="btn-volver" id="btnSalirPartida">← Salir</button>
     
     <p class="ronda" id="rondaTexto">Ronda 1</p>
     
-    <!-- NUEVA ARENA DE LUCHA CON LOS AVATARES -->
-    <div class="arena-lucha">
+    <!-- Contenedor general que alinea los avatares grandes a los flancos de la mesa -->
+    <div class="arena-lucha-contenedor">
+      
+      <!-- TU AVATAR (Izquierda) -->
       <div id="avatarLuchaJugador" class="avatar-lucha"></div>
-      <div id="avatarLuchaCOM" class="avatar-lucha" style="background-image: url('mago1.png');"></div>
-    </div>
 
-    <div class="contenedor">
-      <div class="tarjeta">
-        <p class="etiqueta">Categoría</p>
-        <p class="valor" id="categoria">—</p>
+      <!-- CONTENEDOR CENTRAL DE CARTAS -->
+      <div class="contenedor" style="flex: 1; max-width: 380px;">
+        <div class="tarjeta">
+          <p class="etiqueta">Categoría</p>
+          <p class="valor" id="categoria">—</p>
+        </div>
+        <div class="tarjeta">
+          <p class="etiqueta">Letra</p>
+          <p class="letra" id="letra">—</p>
+        </div>
+        <div class="tarjeta">
+          <p class="cronometro" id="cronometro">0.0</p>
+        </div>
+        <div class="tarjeta" style="padding: 10px; display: flex; gap: 6px; justify-content: space-around;">
+          <button id="btnAyudaPista" class="btn-ayuda" title="Revela la mitad de una palabra válida">💡 Pista (<span id="stockPista">0</span>)</button>
+          <button id="btnAyudaTiempo" class="btn-ayuda" title="Bloquea al rival 5s en la sig. ronda">🔒 Bloquear (<span id="stockTiempo">0</span>)</button>
+          <button id="btnAyudaFantasma" class="btn-ayuda" title="Inmunidad al fallo en esta ronda">👻 Fantasma (<span id="stockFantasma">0</span>)</button>
+        </div>
+        <div class="tarjeta">
+          <p class="etiqueta">Tu respuesta</p>
+          <input type="text" id="inputRespuesta" placeholder="Escribe la palabra" />
+          <button id="btnEnviar">Enviar</button>
+        </div>
       </div>
-      <div class="tarjeta">
-        <p class="etiqueta">Letra</p>
-        <p class="letra" id="letra">—</p>
-      </div>
-      <div class="tarjeta">
-        <p class="cronometro" id="cronometro">0.0</p>
-      </div>
-      <div class="tarjeta" style="padding: 10px; display: flex; gap: 6px; justify-content: space-around;">
-        <button id="btnAyudaPista" class="btn-ayuda" title="Revela la mitad de una palabra válida">💡 Pista (<span id="stockPista">0</span>)</button>
-        <button id="btnAyudaTiempo" class="btn-ayuda" title="Bloquea al rival 5s en la sig. ronda">🔒 Bloquear (<span id="stockTiempo">0</span>)</button>
-        <button id="btnAyudaFantasma" class="btn-ayuda" title="Inmunidad al fallo en esta ronda">👻 Fantasma (<span id="stockFantasma">0</span>)</button>
-      </div>
-      <div class="tarjeta">
-        <p class="etiqueta">Tu respuesta</p>
-        <input type="text" id="inputRespuesta" placeholder="Escribe la palabra" />
-        <button id="btnEnviar">Enviar</button>
-      </div>
+
+      <!-- AVATAR RIVAL / MAGO (Derecha) -->
+      <div id="avatarLuchaCOM" class="avatar-lucha" style="background-image: url('mago1.png');"></div>
+
     </div>
   </div>
 

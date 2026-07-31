@@ -661,7 +661,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('btnSiguienteRonda').style.display = 'block';
     }, 900);
   }
-  
+
   // ----- RANKING -----
 
   document.getElementById('btnClasificatoria').addEventListener('click', function() {
@@ -1227,5 +1227,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   // ▲▲ HASTA AQUÍ EL CÓDIGO DE AVATARES ▲▲
+
+  // ----- BOTÓN SALIR DE PARTIDA -----
+  const btnSalir = document.getElementById('btnSalirPartida');
+  if (btnSalir) {
+    btnSalir.addEventListener('click', () => {
+      const seguro = confirm("¿Estás seguro de que quieres abandonar? Perderás la partida.");
+      if (seguro) {
+        document.getElementById('pantallaJuego').style.display = 'none';
+        document.getElementById('pantallaMenu').style.display = 'flex';
+        // Limpiamos los temporizadores activos de la partida
+        if (typeof intervalo !== 'undefined') clearInterval(intervalo);
+        if (typeof timerCOM !== 'undefined') clearTimeout(timerCOM);
+      }
+    });
+  }
   
 }) // cierre del DOMContentLoaded
