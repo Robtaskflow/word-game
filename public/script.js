@@ -1103,4 +1103,5 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(function(error) { console.log('Error SW:', error) })
   }
 
-}) // cierre del DOMContentLoaded
+}) // cierre del DOMContentLoaded 
+// actual
