@@ -1022,122 +1022,7 @@ button:disabled {
   backdrop-filter: blur(10px);
 }
 
-/* ===== ARENA DE AVATARES ===== */
-.arena-avatares {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  max-width: 420px;
-  padding: 8px 20px;
-  margin-bottom: 4px;
-}
-
-.avatar-combate {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.avatar-img {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: 2px solid var(--azul-borde);
-  object-fit: cover;
-  transition: transform 0.1s ease;
-}
-
-.avatar-rival .avatar-img {
-  transform: scaleX(-1);
-}
-
-.avatar-nombre-combate {
-  font-size: 0.7rem;
-  color: var(--texto-secundario);
-  font-weight: 600;
-  max-width: 70px;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.arena-centro {
-  font-size: 1rem;
-  font-weight: 900;
-  color: var(--dorado);
-  letter-spacing: 2px;
-}
-
-/* Animación de ataque del jugador */
-@keyframes atacarDerecha {
-  0%   { transform: translateX(0) scaleX(1); }
-  30%  { transform: translateX(20px) scaleX(1.1); }
-  60%  { transform: translateX(0) scaleX(1); }
-  80%  { transform: translateX(10px) scaleX(1.05); }
-  100% { transform: translateX(0) scaleX(1); }
-}
-
-/* Animación de ataque del rival (viene de la derecha) */
-@keyframes atacarIzquierda {
-  0%   { transform: translateX(0) scaleX(-1); }
-  30%  { transform: translateX(-20px) scaleX(-1.1); }
-  60%  { transform: translateX(0) scaleX(-1); }
-  80%  { transform: translateX(-10px) scaleX(-1.05); }
-  100% { transform: translateX(0) scaleX(-1); }
-}
-
-/* Animación de recibir golpe */
-@keyframes recibirGolpe {
-  0%   { filter: brightness(1); }
-  25%  { filter: brightness(3) saturate(0); transform: translateX(-8px); }
-  50%  { filter: brightness(1); transform: translateX(5px); }
-  75%  { filter: brightness(2); transform: translateX(-3px); }
-  100% { filter: brightness(1); transform: translateX(0); }
-}
-
-.atacando-derecha {
-  animation: atacarDerecha 0.5s ease !important;
-}
-
-.atacando-izquierda {
-  animation: atacarIzquierda 0.5s ease !important;
-}
-
-.recibiendo-golpe {
-  animation: recibirGolpe 0.4s ease !important;
-}
-
-/* Proyectil */
-.proyectil {
-  position: fixed;
-  font-size: 1.5rem;
-  z-index: 9000;
-  pointer-events: none;
-  transition: none;
-}
-
-@keyframes volarDerecha {
-  from { transform: translateX(0) rotate(0deg); opacity: 1; }
-  to   { transform: translateX(200px) rotate(360deg); opacity: 0; }
-}
-
-@keyframes volarIzquierda {
-  from { transform: translateX(0) rotate(0deg); opacity: 1; }
-  to   { transform: translateX(-200px) rotate(-360deg); opacity: 0; }
-}
-
-.proyectil-derecha {
-  animation: volarDerecha 0.4s ease forwards;
-}
-
-.proyectil-izquierda {
-  animation: volarIzquierda 0.4s ease forwards;
-}
-
-/* Selección de avatar en perfil */
+/* ===== PERFIL: BORDES Y SELECCIÓN DE AVATAR ===== */
 .avatar-opcion {
   cursor: pointer;
   padding: 8px;
@@ -1145,17 +1030,74 @@ button:disabled {
   border: 2px solid transparent;
   transition: all 0.2s ease;
 }
-
 .avatar-opcion:hover {
-  border-color: var(--dorado);
   background: rgba(201, 168, 76, 0.1);
 }
-
 .avatar-opcion.seleccionado {
-  border-color: var(--dorado);
   background: rgba(201, 168, 76, 0.15);
 }
-
 .avatar-opcion.seleccionado img {
-  border-color: var(--dorado) !important;
+  border-color: #c9a84c !important;
+  box-shadow: 0 0 10px rgba(201,168,76, 0.6);
 }
+
+/* ===== ARENA LATERAL DE LUCHA ===== */
+.arena-lucha-contenedor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 580px;
+  gap: 15px;
+  margin: 0 auto 5px auto;
+  position: relative;
+}
+
+.avatar-lucha {
+  width: 90px;
+  height: 90px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  position: relative;
+  z-index: 10;
+  transition: transform 0.2s ease;
+}
+
+/* ===== PROYECTILES (CUCHILLO Y FUEGO) EN PARTIDA ===== */
+.proyectil-arma, .proyectil-fuego {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* Animación del proyectil que tú disparas */
+@keyframes volarHaciaDerecha {
+  0% { left: 90px; top: 25px; opacity: 1; transform: scale(0.8) rotate(0deg); }
+  80% { opacity: 1; }
+  100% { left: 450px; top: 25px; opacity: 0; transform: scale(1.2) rotate(360deg); }
+}
+
+/* Animación de la bola de fuego de la IA */
+@keyframes volarHaciaIzquierda {
+  0% { right: 90px; top: 25px; opacity: 1; transform: scale(0.8); }
+  80% { opacity: 1; }
+  100% { right: 450px; top: 25px; opacity: 0; transform: scale(1.5); }
+}
+
+.volar-derecha { animation: volarHaciaDerecha 0.5s ease-in-out forwards; }
+.volar-izquierda { animation: volarHaciaIzquierda 0.5s ease-in-out forwards; }
+
+/* Efecto de recibir el golpe */
+@keyframes dañoImpacto {
+  0%, 100% { transform: translateX(0); filter: brightness(1); }
+  25% { transform: translateX(-10px) rotate(-10deg); filter: brightness(0.3) sepia(1) hue-rotate(-50deg); }
+  75% { transform: translateX(10px) rotate(10deg); filter: brightness(0.3) sepia(1) hue-rotate(-50deg); }
+}
+.anim-dano { animation: dañoImpacto 0.4s ease-in-out; }
