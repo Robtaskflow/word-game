@@ -15,27 +15,8 @@ let juegosGanadosLocal = 0
 let juegosGanadosRival = 0
 let fantasmaActivo = false
 
-function quitarAcentos(texto) {
-  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-}
-
-function calcularRango(xp) {
-  if (xp < 200) return { nombre: 'Bronce', icono: '🥉' }
-  if (xp < 600) return { nombre: 'Plata', icono: '🥈' }
-  if (xp < 1200) return { nombre: 'Oro', icono: '🥇' }
-  if (xp < 2000) return { nombre: 'Diamante', icono: '💎' }
-  return { nombre: 'Leyenda', icono: '👑' }
-}
-
-function xpSiguienteRango(xp) {
-  if (xp < 200) return { actual: xp, necesaria: 200 }
-  if (xp < 600) return { actual: xp, necesaria: 600 }
-  if (xp < 1200) return { actual: xp, necesaria: 1200 }
-  if (xp < 2000) return { actual: xp, necesaria: 2000 }
-  return { actual: xp, necesaria: null }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
+
   let usuarioActual = null
   document.getElementById('pantallaBienvenida').style.display = 'none'
 
@@ -48,11 +29,17 @@ document.addEventListener('DOMContentLoaded', function() {
           mostrarBarraUsuario()
           document.getElementById('pantallaLogin').style.display = 'none'
           document.getElementById('pantallaBienvenida').style.display = 'flex'
+
           const titulo = document.getElementById('tituloBienvenida')
           if (titulo) {
             titulo.classList.remove('animar-caida')
             void titulo.offsetWidth
             titulo.classList.add('animar-caida')
+            const sonidoMuelle = new Audio('/muelle.mp3')
+            sonidoMuelle.volume = 0.5
+            setTimeout(function() {
+              sonidoMuelle.play().catch(function() {})
+            }, 400)
           }
         } else {
           document.getElementById('pantallaLogin').style.display = 'none'
@@ -88,6 +75,16 @@ document.addEventListener('DOMContentLoaded', function() {
     registrarse(email, password).catch(function(error) { alert('Error: ' + error.message) })
   })
 
+  document.getElementById('btnLoginGoogle').addEventListener('click', function() {
+    iniciarSesionGoogle().catch(function(error) { alert('Error con Google: ' + error.message) })
+  })
+
+  document.getElementById('btnRegistroGoogle').addEventListener('click', function() {
+    iniciarSesionGoogle().catch(function(error) { alert('Error con Google: ' + error.message) })
+  })
+
+  // ----- ELEGIR NOMBRE -----
+
   document.getElementById('btnConfirmarNombre').addEventListener('click', function() {
     const nombre = document.getElementById('inputNombreUsuario').value.trim()
     if (!nombre) { alert('Escribe un nombre de usuario'); return }
@@ -106,6 +103,8 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     })
   })
+
+  // ----- SISTEMA DE VIDAS -----
 
   function obtenerMsTiempo(tiempo) {
     if (!tiempo) return null
@@ -183,6 +182,8 @@ document.addEventListener('DOMContentLoaded', function() {
     return db.collection('usuarios').doc(uid).update({ vidas: vidas, tiempoUltimaPerdida: tiempoUltimaPerdida })
   }
 
+  // ----- DIAMANTES -----
+
   function actualizarDiamantesUI() {
     const d = usuarioActual ? (usuarioActual.diamantes || 0) : 0
     const el = document.getElementById('contadorDiamantes')
@@ -200,6 +201,8 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarDiamantesUI()
     añadirDiamantes(usuario.uid, cantidad)
   }
+
+  // ----- GESTIÓN DE STOCK DE AYUDAS -----
 
   function actualizarStockAyudas() {
     if (!usuarioActual) return
@@ -221,6 +224,8 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarStockAyudas()
   }
 
+  // ----- TIENDA -----
+
   document.getElementById('btnTienda').addEventListener('click', function() {
     document.getElementById('pantallaMenu').style.display = 'none'
     document.getElementById('pantallaTienda').style.display = 'flex'
@@ -239,10 +244,36 @@ document.addEventListener('DOMContentLoaded', function() {
 
   socket.on('redirigirPago', function(urlStripe) { window.location.href = urlStripe })
 
+  const urlParams = new URLSearchParams(window.location.search)
+  if (urlParams.get('pago') === 'exito') {
+    const tipoComprado = urlParams.get('tipo')
+    auth.onAuthStateChanged(function(usuario) {
+      if (usuario) {
+        obtenerUsuario(usuario.uid).then(function(doc) {
+          if (doc.exists) {
+            let datosUsr = doc.data()
+            if (tipoComprado === 'pista') datosUsr.pistas = (datosUsr.pistas || 3) + 1
+            if (tipoComprado === 'tiempo') datosUsr.tiempoExtra = (datosUsr.tiempoExtra || 3) + 1
+            if (tipoComprado === 'fantasma') datosUsr.fantasmas = (datosUsr.fantasmas || 3) + 1
+            db.collection('usuarios').doc(usuario.uid).update({
+              pistas: datosUsr.pistas, tiempoExtra: datosUsr.tiempoExtra, fantasmas: datosUsr.fantasmas
+            }).then(function() {
+              alert('¡Pago completado! Se ha añadido tu ayuda al inventario.')
+              window.history.replaceState({}, document.title, window.location.pathname)
+              location.reload()
+            })
+          }
+        })
+      }
+    })
+  }
+
+  // Compra con dinero real
   document.getElementById('btnComprarPista').addEventListener('click', function() { iniciarCompraReal('pista') })
   document.getElementById('btnComprarTiempo').addEventListener('click', function() { iniciarCompraReal('tiempo') })
   document.getElementById('btnComprarFantasma').addEventListener('click', function() { iniciarCompraReal('fantasma') })
 
+  // Compra con diamantes
   document.getElementById('btnComprarPistaD').addEventListener('click', function() {
     const usuario = auth.currentUser
     if (!usuario || !usuarioActual) return
@@ -297,14 +328,15 @@ document.addEventListener('DOMContentLoaded', function() {
     })
   })
 
+  // ----- AYUDAS EN PARTIDA -----
+
   document.getElementById('btnAyudaPista').addEventListener('click', function() {
     if (!usuarioActual) return
     if (usuarioActual.pistas === undefined) usuarioActual.pistas = 3
     if (usuarioActual.pistas <= 0) { alert('¡No te quedan pistas!'); return }
     const lista = diccionario[categoriaActualCOM] || []
-    const letraBuscada = quitarAcentos(letraActualCOM.toLowerCase())
     const filtradas = lista.filter(function(p) {
-      return quitarAcentos(p).charAt(0).toLowerCase() === letraBuscada
+      return p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toUpperCase() === letraActualCOM
     })
     if (filtradas.length > 0) {
       const palabra = filtradas[Math.floor(Math.random() * filtradas.length)]
@@ -313,7 +345,7 @@ document.addEventListener('DOMContentLoaded', function() {
       usuarioActual.pistas -= 1
       guardarInventarioEnFirestore()
       document.getElementById('inputRespuesta').value = pistaParcial
-      alert('💡 Pista: ' + pistaParcial)
+      alert('💡 Pista: ' + pistaParcial + ' (Completa los huecos _)')
     } else {
       alert('No hay palabras disponibles para generar pista.')
     }
@@ -326,7 +358,7 @@ document.addEventListener('DOMContentLoaded', function() {
     usuarioActual.tiempoExtra -= 1
     guardarInventarioEnFirestore()
     socket.emit('cegarRival')
-    alert('🔒 ¡Bloqueo activado!')
+    alert('🔒 ¡Bloqueo activado! El rival no podrá escribir al comenzar la siguiente ronda.')
   })
 
   document.getElementById('btnAyudaFantasma').addEventListener('click', function() {
@@ -336,7 +368,7 @@ document.addEventListener('DOMContentLoaded', function() {
     usuarioActual.fantasmas -= 1
     guardarInventarioEnFirestore()
     fantasmaActivo = true
-    alert('👻 ¡Fantasma activado!')
+    alert('👻 ¡Fantasma activado! Si fallas en esta ronda no perderás puntos.')
   })
 
   socket.on('activarCegueraRival', function(datos) {
@@ -361,6 +393,8 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }, 1000)
   })
+
+  // ----- BARRA DE USUARIO Y PERFIL -----
 
   function mostrarBarraUsuario() {
     if (!usuarioActual) return
@@ -411,6 +445,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('btnCerrarSesion').addEventListener('click', function() {
     cerrarSesion().then(function() { location.reload() })
   })
+
+  // ----- BIENVENIDA Y MENÚ -----
 
   document.getElementById('pantallaBienvenida').addEventListener('click', function() {
     document.getElementById('pantallaBienvenida').style.display = 'none'
@@ -474,6 +510,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('btnUnirse').disabled = true
   })
 
+  // ----- VS COM -----
+
   function iniciarRondaCOM() {
     if (puntosUsuarioCOM >= 5 || puntosMaquinaCOM >= 5) { finalizarPartidaCOM(); return }
     document.getElementById('rondaTexto').textContent = 'Ronda ' + rondaCOM + ' (Tú: ' + puntosUsuarioCOM + ' pts | IA: ' + puntosMaquinaCOM + ' pts)'
@@ -499,10 +537,10 @@ document.addEventListener('DOMContentLoaded', function() {
         clearInterval(intervalo)
         if (!usuarioYaRespondio) {
           usuarioYaRespondio = true
+          palabraMaquinaRonda = '(Tiempo agotado)'
           let ptsPerdidos = fantasmaActivo ? 0 : -1
           fantasmaActivo = false
           puntosUsuarioCOM = Math.max(0, puntosUsuarioCOM + ptsPerdidos)
-          maquinaPiensaYSale()
           mostrarResultadoCOM('(Sin respuesta)', false, ptsPerdidos)
         }
       }
@@ -512,11 +550,11 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function maquinaPiensaYSale() {
-    if (palabraMaquinaRonda) return
+    if (usuarioYaRespondio) return
     const listaCategoria = diccionario[categoriaActualCOM] || []
-    const letraBuscada = quitarAcentos(letraActualCOM.toLowerCase())
+    const letraBuscada = letraActualCOM.toLowerCase()
     const filtradas = listaCategoria.filter(function(palabra) {
-      return quitarAcentos(palabra).charAt(0).toLowerCase() === letraBuscada
+      return palabra.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toLowerCase() === letraBuscada
     })
     const acierta = Math.random() < 0.75
     if (acierta && filtradas.length > 0) {
@@ -526,13 +564,13 @@ document.addEventListener('DOMContentLoaded', function() {
       palabraMaquinaRonda = '(La IA falló)'
       puntosMaquinaCOM = Math.max(0, puntosMaquinaCOM - 1)
     }
-    if (!usuarioYaRespondio) {
-      usuarioYaRespondio = true
-      clearInterval(intervalo)
-      clearTimeout(timerCOM)
-      mostrarResultadoCOM('(La IA respondió primero)', false, 0)
-    }
+    usuarioYaRespondio = true
+    clearInterval(intervalo)
+    clearTimeout(timerCOM)
+    mostrarResultadoCOM('(La IA respondió primero)', false, 0)
   }
+
+  // ----- RANKING -----
 
   document.getElementById('btnClasificatoria').addEventListener('click', function() {
     document.getElementById('pantallaMenu').style.display = 'none'
@@ -577,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         if (!miPosicionEnTop100 && usuarioActual) buscarMiPosicion()
       })
-      .catch(function() {
+      .catch(function(error) {
         document.getElementById('rankingCargando').textContent = 'Error al cargar el ranking.'
       })
   }
@@ -599,6 +637,8 @@ document.addEventListener('DOMContentLoaded', function() {
         `
       })
   }
+
+  // ----- AJUSTES Y BOTONES VOLVER -----
 
   document.getElementById('btnAjustes').addEventListener('click', function() {
     document.getElementById('pantallaMenu').style.display = 'none'
@@ -625,7 +665,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaMenu').style.display = 'flex'
   })
 
-  socket.on('esperando', function() { console.log('Esperando...') })
+  // ----- SOCKETS -----
+
+  socket.on('esperando', function() { console.log('Esperando a otro jugador...') })
 
   socket.on('partidaEncontrada', function(datos) {
     document.getElementById('pantallaInicio').style.display = 'none'
@@ -674,22 +716,16 @@ document.addEventListener('DOMContentLoaded', function() {
   function enviarRespuesta() {
     const respuesta = document.getElementById('inputRespuesta').value.trim()
     if (!respuesta) { alert('Escribe una palabra antes de enviar'); return }
-
     if (enModoVsCOM) {
       if (usuarioYaRespondio) return
       clearTimeout(timerCOM)
       usuarioYaRespondio = true
       clearInterval(intervalo)
-
-      const respuestaLimpia = quitarAcentos(respuesta.trim().toLowerCase())
-      const letraLimpia = quitarAcentos(letraActualCOM.toLowerCase())
+      const letraIngresada = respuesta.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toUpperCase()
       const listaCategoria = diccionario[categoriaActualCOM] || []
-      const empiezaBien = respuestaLimpia.charAt(0) === letraLimpia
-      const estaEnDiccionario = listaCategoria.some(function(p) {
-        return quitarAcentos(p.toLowerCase()) === respuestaLimpia
+      const esValida = letraIngresada === letraActualCOM && listaCategoria.some(function(p) {
+        return p.toLowerCase() === respuesta.toLowerCase()
       })
-      const esValida = empiezaBien && estaEnDiccionario
-
       if (esValida) {
         puntosUsuarioCOM += 1
       } else {
@@ -697,11 +733,10 @@ document.addEventListener('DOMContentLoaded', function() {
         puntosUsuarioCOM = Math.max(0, puntosUsuarioCOM + ptsPerdidos)
       }
       fantasmaActivo = false
-
       if (!palabraMaquinaRonda) {
         const aciertaIA = Math.random() < 0.75
         const filtradas = listaCategoria.filter(function(p) {
-          return quitarAcentos(p).charAt(0).toLowerCase() === letraLimpia
+          return p.normalize('NFD').replace(/[\u0300-\u036f]/g, '').charAt(0).toLowerCase() === letraActualCOM.toLowerCase()
         })
         if (aciertaIA && filtradas.length > 0) {
           palabraMaquinaRonda = filtradas[Math.floor(Math.random() * filtradas.length)]
@@ -711,7 +746,6 @@ document.addEventListener('DOMContentLoaded', function() {
           puntosMaquinaCOM = Math.max(0, puntosMaquinaCOM - 1)
         }
       }
-
       mostrarResultadoCOM(respuesta, esValida, esValida ? 1 : -1)
     } else {
       document.getElementById('btnEnviar').disabled = true
@@ -728,16 +762,34 @@ document.addEventListener('DOMContentLoaded', function() {
     titulo.textContent = validaUser ? 'PALABRA CORRECTA (+1)' : (ptsUser === 0 ? 'PALABRA INCORRECTA (INMUNE)' : 'PALABRA INCORRECTA (-1)')
     titulo.style.color = validaUser ? '#2ecc71' : '#ff5e5e'
     const contenedor = document.getElementById('respuestasJugadores')
-    const iaValida = palabraMaquinaRonda && palabraMaquinaRonda !== '(La IA falló)' && palabraMaquinaRonda !== '(Tiempo agotado)' && palabraMaquinaRonda !== '(La IA respondió primero)'
+    const claseUser = validaUser ? 'fila-verde' : 'fila-roja'
+    const iconoUser = validaUser ? '✓' : '!'
+    const bgIconoUser = validaUser ? '#2ecc71' : '#e74c3c'
+    const textoSumaUser = validaUser ? 'Total: +1 pts' : (ptsUser === 0 ? 'Total: 0 pts' : 'Total: -1 pts')
+    const colorPtsUser = validaUser ? 't-verde' : 't-rojo'
+    const iaValida = (palabraMaquinaRonda !== '(La IA falló)' && palabraMaquinaRonda !== '(Tiempo agotado)')
+    const claseIA = iaValida ? 'fila-verde' : 'fila-roja'
+    const textoSumaIA = iaValida ? 'Total: +1 pts' : 'Total: -1 pts'
+    const colorPtsIA = iaValida ? 't-verde' : 't-rojo'
     contenedor.innerHTML = `
-      <div class="fila-jugador" style="padding:10px 0; border-bottom:1px solid rgba(30,58,110,0.4);">
-        <span class="nombre-jugador">Tú</span>
-        <span class="puntos-jugador" style="color:${validaUser ? '#2ecc71' : '#ff5e5e'}">${respUser} — ${puntosUsuarioCOM} pts</span>
+      <div class="fila-resultado-custom ${claseUser}">
+        <div class="res-izq">
+          <div class="res-circulo-icono" style="background:${bgIconoUser}; color:white;">${iconoUser}</div>
+          <span>Tú</span>
+        </div>
+        <div class="res-palabra-centro">${respUser || '---'}</div>
+        <div class="res-puntos-derecha ${colorPtsUser}">${textoSumaUser}</div>
       </div>
-      <div class="fila-jugador" style="padding:10px 0;">
-        <span class="nombre-jugador">🤖 Computadora</span>
-        <span class="puntos-jugador" style="color:${iaValida ? '#2ecc71' : '#ff5e5e'}">${palabraMaquinaRonda} — ${puntosMaquinaCOM} pts</span>
+      <div class="texto-total-grande t-blanco">Total: ${puntosUsuarioCOM} pts</div>
+      <div class="fila-resultado-custom ${claseIA}">
+        <div class="res-izq">
+          <div class="res-circulo-icono" style="background:#1e3a6e; color:white;">🤖</div>
+          <span>Computadora (IA)</span>
+        </div>
+        <div class="res-palabra-centro">${palabraMaquinaRonda}</div>
+        <div class="res-puntos-derecha ${colorPtsIA}">${textoSumaIA}</div>
       </div>
+      <div class="texto-total-grande t-amarillo">Total: ${puntosMaquinaCOM} pts</div>
     `
     document.getElementById('btnSiguienteRonda').style.display = 'block'
   }
@@ -819,12 +871,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000)
   })
 
+  // ----- VICTORIA VS COM -----
+
   function finalizarPartidaCOM() {
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaVictoria').style.display = 'flex'
     const ganoUser = puntosUsuarioCOM > puntosMaquinaCOM
-    document.getElementById('nombreGanador').textContent = ganoUser ? (usuarioActual ? usuarioActual.nombreMostrar : '¡Tú!') : 'Computadora (IA)'
+    document.getElementById('nombreGanador').textContent = ganoUser
+      ? (usuarioActual ? usuarioActual.nombreMostrar : '¡Tú!')
+      : 'Computadora (IA)'
     const contenedor = document.getElementById('puntosFinales')
     contenedor.innerHTML = `
       <div class="fila-puntos-final"><span class="nombre">Tus puntos:</span><span class="puntos">${puntosUsuarioCOM} pts</span></div>
@@ -867,6 +923,8 @@ document.addEventListener('DOMContentLoaded', function() {
       if (cuenta <= 0) { clearInterval(contador); location.reload() }
     }, 1000)
   }
+
+  // ----- VICTORIA ONLINE -----
 
   function mostrarVictoria(datos) {
     const usuario = auth.currentUser
@@ -911,6 +969,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
     }
+
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaVictoria').style.display = 'flex'
@@ -938,6 +997,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000)
   }
 
+  // ----- ENTRE JUEGOS CLASIFICATORIA -----
+
   function mostrarEntreJuegos() {
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'none'
@@ -963,12 +1024,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  // ----- VICTORIA FINAL CLASIFICATORIA -----
+
   function mostrarVictoriaFinalClasificatoria() {
     document.getElementById('pantallaResultado').style.display = 'none'
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaVictoria').style.display = 'flex'
     const ganoSerie = juegosGanadosLocal > juegosGanadosRival
-    document.getElementById('nombreGanador').textContent = ganoSerie ? (usuarioActual ? usuarioActual.nombreMostrar : 'Tú') : 'Rival'
+    document.getElementById('nombreGanador').textContent = ganoSerie
+      ? (usuarioActual ? usuarioActual.nombreMostrar : 'Tú')
+      : 'Rival'
     const usuario = auth.currentUser
     if (usuario && usuarioActual && ganoSerie) {
       const xpAnterior = usuarioActual.xp || 0
@@ -1030,97 +1095,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000)
   }
 
+  // ----- SERVICE WORKER -----
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
       .then(function() { console.log('Service Worker registrado correctamente') })
       .catch(function(error) { console.log('Error SW:', error) })
   }
-})
 
-function obtenerUsuario(uid) {
-  return db.collection('usuarios').doc(uid).get()
-}
-
-function actualizarXP(uid, cantidad, esVictoria) {
-  return db.collection('usuarios').doc(uid).get().then(function(doc) {
-    if (!doc.exists) return
-    const datos = doc.data()
-    const nuevaXp = Math.max(0, (datos.xp || 0) + cantidad)
-    const nuevasPartidas = (datos.partidas || 0) + 1
-    const nuevasVictorias = esVictoria ? (datos.victorias || 0) + 1 : (datos.victorias || 0)
-    const nuevasDerrotas = !esVictoria ? (datos.derrotas || 0) + 1 : (datos.derrotas || 0)
-    return db.collection('usuarios').doc(uid).update({
-      xp: nuevaXp,
-      partidas: nuevasPartidas,
-      victorias: nuevasVictorias,
-      derrotas: nuevasDerrotas
-    })
-  })
-}
-
-function añadirDiamantes(uid, cantidad) {
-  return db.collection('usuarios').doc(uid).get().then(function(doc) {
-    if (!doc.exists) return
-    const actuales = doc.data().diamantes || 0
-    return db.collection('usuarios').doc(uid).update({ diamantes: actuales + cantidad })
-  })
-}
-
-function gastarDiamantes(uid, cantidad) {
-  return db.collection('usuarios').doc(uid).get().then(function(doc) {
-    if (!doc.exists) return false
-    const actuales = doc.data().diamantes || 0
-    if (actuales < cantidad) return false
-    return db.collection('usuarios').doc(uid).update({ diamantes: actuales - cantidad }).then(() => true)
-  })
-}
-
-function nombreExiste(nombre) {
-  return db.collection('usuarios').where('nombreUsuario', '==', nombre.toLowerCase()).get().then(function(snapshot) {
-    return !snapshot.empty
-  })
-}
-
-function guardarUsuario(uid, nombre, email) {
-  return db.collection('usuarios').doc(uid).set({
-    nombreUsuario: nombre.toLowerCase(),
-    nombreMostrar: nombre,
-    email: email,
-    partidas: 0,
-    victorias: 0,
-    derrotas: 0,
-    xp: 0,
-    vidas: 6,
-    tiempoUltimaPerdida: null,
-    diamantes: 0,
-    pistas: 3,
-    tiempoExtra: 3,
-    fantasmas: 3,
-    creadoEn: firebase.firestore.FieldValue.serverTimestamp()
-  })
-}
-
-function cerrarSesion() {
-  return auth.signOut()
-}
-
-function iniciarSesion(email, password) {
-  return auth.signInWithEmailAndPassword(email, password)
-}
-
-function registrarse(email, password) {
-  return auth.createUserWithEmailAndPassword(email, password)
-}
-
-function iniciarSesionGoogle() {
-  const provider = new firebase.auth.GoogleAuthProvider()
-  return auth.signInWithPopup(provider).then(function(resultado) {
-    const usuario = resultado.user
-    return obtenerUsuario(usuario.uid).then(function(doc) {
-      if (!doc.exists) {
-        const nombreBase = usuario.displayName ? usuario.displayName.split(' ')[0] : 'Jugador'
-        return guardarUsuario(usuario.uid, nombreBase, usuario.email)
-      }
-    })
-  })
-}
+}) // cierre del DOMContentLoaded

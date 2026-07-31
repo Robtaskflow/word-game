@@ -58,6 +58,30 @@ body {
   overflow-y: auto;
 }
 
+/* ===== EXCEPCIÓN: FONDO NÍTIDO SOLO DENTRO DE LA PARTIDA ===== */
+#pantallaJuego {
+  background-image: url('fondo.png') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-attachment: fixed !important;
+  background-color: transparent !important;
+}
+
+/* Capa muy sutil para proteger la legibilidad en el juego pero manteniendo la foto nítida */
+#pantallaJuego::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(10, 15, 30, 0.3);
+  z-index: 0;
+  pointer-events: none;
+}
+
+#pantallaJuego > * {
+  position: relative;
+  z-index: 1;
+}
+
 /* ===== CONTENEDOR ===== */
 .contenedor {
   width: 100%;
@@ -279,12 +303,24 @@ body {
   margin-bottom: 8px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  justify-content: space-between; /* Añadido para separar el texto del gráfico derecho */
   cursor: pointer;
   text-align: left;
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
+}
+
+.btn-menu-contenido {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.btn-icono-derecha {
+  font-size: 1.8rem;
+  opacity: 0.25; /* Efecto transparente al lado de los botones del menú */
+  flex-shrink: 0;
 }
 
 .btn-menu::before {
@@ -908,4 +944,80 @@ button:disabled {
   .letra { font-size: 3rem; padding: 4px 0; }
   .cronometro { font-size: 2.2rem; }
   .trofeo { font-size: 3rem; }
+}
+/* ===== ESTILOS PARA LA PANTALLA DE RESULTADOS (ESTILO FOTO) ===== */
+.fila-resultado-custom {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin-top: 10px;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.fila-roja {
+  background-color: rgba(231, 76, 60, 0.25);
+  border: 1px solid rgba(231, 76, 60, 0.5);
+}
+
+.fila-verde {
+  background-color: rgba(46, 204, 113, 0.25);
+  border: 1px solid rgba(46, 204, 113, 0.5);
+}
+
+.res-izq {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.res-circulo-icono {
+  width: 32px; 
+  height: 32px; 
+  border-radius: 50%;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+}
+
+.res-palabra-centro { 
+  text-align: left; 
+  font-weight: normal; 
+  color: #e2e8f0; 
+}
+
+.res-puntos-derecha { 
+  text-align: right; 
+  font-size: 0.85rem; 
+}
+
+.texto-total-grande {
+  text-align: right;
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-top: 6px;
+  margin-bottom: 12px;
+  padding-right: 4px;
+}
+
+.t-blanco { color: white; }
+.t-amarillo { color: #f1c40f; }
+.t-rojo { color: #ff6b6b; }
+.t-verde { color: #2ecc71; }
+
+/* ===== DIAMANTES ===== */
+.diamantes-contenedor {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, rgba(10, 80, 10, 0.85), rgba(5, 50, 5, 0.85));
+  border: 1px solid rgba(46, 139, 46, 0.6);
+  border-radius: 30px;
+  padding: 5px 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #7dde7d;
+  backdrop-filter: blur(10px);
 }

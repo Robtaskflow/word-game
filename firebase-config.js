@@ -36,7 +36,6 @@ function guardarUsuario(uid, nombre, email) {
     pistas: 3,
     tiempoExtra: 3,
     fantasmas: 3,
-    avatar: 'ninja1',
     creadoEn: firebase.firestore.FieldValue.serverTimestamp()
   })
 }
