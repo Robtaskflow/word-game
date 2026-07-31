@@ -351,16 +351,49 @@ document.addEventListener('DOMContentLoaded', function() {
     cerrarSesion().then(() => location.reload())
   })
 
-  // ----- NAVEGACIÓN Y MENÚS -----
+ // ----- NAVEGACIÓN Y MENÚS -----
+
+  // ¡Esta es la línea que faltaba para poder entrar al juego!
+  document.getElementById('pantallaBienvenida').addEventListener('click', function() {
+    document.getElementById('pantallaBienvenida').style.display = 'none'
+    document.getElementById('pantallaMenu').style.display = 'flex'
+  })
 
   document.getElementById('btnJugar').addEventListener('click', function() {
     document.getElementById('pantallaMenu').style.display = 'none'
     document.getElementById('pantallaSeleccionModo').style.display = 'flex'
   })
+
   document.getElementById('btnVolverMenuModo').addEventListener('click', function() {
     document.getElementById('pantallaSeleccionModo').style.display = 'none'
     document.getElementById('pantallaMenu').style.display = 'flex'
   })
+
+  // Botones de Tienda y Ajustes recuperados
+  if(document.getElementById('btnTienda')) {
+    document.getElementById('btnTienda').addEventListener('click', function() {
+      document.getElementById('pantallaMenu').style.display = 'none'
+      document.getElementById('pantallaTienda').style.display = 'flex'
+    })
+  }
+
+  if(document.getElementById('btnVolverTienda')) {
+    document.getElementById('btnVolverTienda').addEventListener('click', function() {
+      document.getElementById('pantallaTienda').style.display = 'none'
+      document.getElementById('pantallaMenu').style.display = 'flex'
+    })
+  }
+
+  // BOTÓN SALIR DE PARTIDA
+  document.getElementById('btnSalirPartida').addEventListener('click', () => {
+      const seguro = confirm("¿Estás seguro de que quieres abandonar? Perderás la partida.");
+      if (seguro) {
+        document.getElementById('pantallaJuego').style.display = 'none';
+        document.getElementById('pantallaMenu').style.display = 'flex';
+        if (typeof intervalo !== 'undefined') clearInterval(intervalo);
+        if (typeof timerCOM !== 'undefined') clearTimeout(timerCOM);
+      }
+  });
   
   // BOTÓN SALIR DE PARTIDA
   document.getElementById('btnSalirPartida').addEventListener('click', () => {
