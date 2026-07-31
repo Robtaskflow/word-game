@@ -75,10 +75,6 @@ function xpSiguienteRango(xp) {
   return { actual: xp, necesaria: 1000 }
 }
 
-function guardarAvatar(uid, avatar) {
-  return db.collection('usuarios').doc(uid).update({ avatar: avatar })
-}
-
 function actualizarXP(uid, cantidad, esVictoria) {
   return db.collection('usuarios').doc(uid).get().then(function(doc) {
     const datos = doc.data()
