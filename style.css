@@ -1022,87 +1022,140 @@ button:disabled {
   backdrop-filter: blur(10px);
 }
 
-/* ===== SELECCIÓN DE AVATAR (PERFIL) ===== */
-.avatar-opcion {
-  width: 60px;
-  height: 60px;
+/* ===== ARENA DE AVATARES ===== */
+.arena-avatares {
   display: flex;
   align-items: center;
-  justify-content: center;
-  /* Cambiamos 'background' por 'background-color' para no borrar la imagen */
-  background-color: rgba(10, 15, 30, 0.8);
-  border: 3px solid #1e3a6e;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 420px;
+  padding: 8px 20px;
+  margin-bottom: 4px;
+}
+
+.avatar-combate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.avatar-img {
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
+  border: 2px solid var(--azul-borde);
+  object-fit: cover;
+  transition: transform 0.1s ease;
+}
+
+.avatar-rival .avatar-img {
+  transform: scaleX(-1);
+}
+
+.avatar-nombre-combate {
+  font-size: 0.7rem;
+  color: var(--texto-secundario);
+  font-weight: 600;
+  max-width: 70px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arena-centro {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--dorado);
+  letter-spacing: 2px;
+}
+
+/* Animación de ataque del jugador */
+@keyframes atacarDerecha {
+  0%   { transform: translateX(0) scaleX(1); }
+  30%  { transform: translateX(20px) scaleX(1.1); }
+  60%  { transform: translateX(0) scaleX(1); }
+  80%  { transform: translateX(10px) scaleX(1.05); }
+  100% { transform: translateX(0) scaleX(1); }
+}
+
+/* Animación de ataque del rival (viene de la derecha) */
+@keyframes atacarIzquierda {
+  0%   { transform: translateX(0) scaleX(-1); }
+  30%  { transform: translateX(-20px) scaleX(-1.1); }
+  60%  { transform: translateX(0) scaleX(-1); }
+  80%  { transform: translateX(-10px) scaleX(-1.05); }
+  100% { transform: translateX(0) scaleX(-1); }
+}
+
+/* Animación de recibir golpe */
+@keyframes recibirGolpe {
+  0%   { filter: brightness(1); }
+  25%  { filter: brightness(3) saturate(0); transform: translateX(-8px); }
+  50%  { filter: brightness(1); transform: translateX(5px); }
+  75%  { filter: brightness(2); transform: translateX(-3px); }
+  100% { filter: brightness(1); transform: translateX(0); }
+}
+
+.atacando-derecha {
+  animation: atacarDerecha 0.5s ease !important;
+}
+
+.atacando-izquierda {
+  animation: atacarIzquierda 0.5s ease !important;
+}
+
+.recibiendo-golpe {
+  animation: recibirGolpe 0.4s ease !important;
+}
+
+/* Proyectil */
+.proyectil {
+  position: fixed;
+  font-size: 1.5rem;
+  z-index: 9000;
+  pointer-events: none;
+  transition: none;
+}
+
+@keyframes volarDerecha {
+  from { transform: translateX(0) rotate(0deg); opacity: 1; }
+  to   { transform: translateX(200px) rotate(360deg); opacity: 0; }
+}
+
+@keyframes volarIzquierda {
+  from { transform: translateX(0) rotate(0deg); opacity: 1; }
+  to   { transform: translateX(-200px) rotate(-360deg); opacity: 0; }
+}
+
+.proyectil-derecha {
+  animation: volarDerecha 0.4s ease forwards;
+}
+
+.proyectil-izquierda {
+  animation: volarIzquierda 0.4s ease forwards;
+}
+
+/* Selección de avatar en perfil */
+.avatar-opcion {
   cursor: pointer;
+  padding: 8px;
+  border-radius: 12px;
+  border: 2px solid transparent;
   transition: all 0.2s ease;
 }
 
 .avatar-opcion:hover {
-  transform: scale(1.1);
-  border-color: #e8c87a;
+  border-color: var(--dorado);
+  background: rgba(201, 168, 76, 0.1);
 }
 
-/* Estilo cuando el avatar está seleccionado */
 .avatar-opcion.seleccionado {
-  border-color: #c9a84c;
-  /* Eliminamos el background lineal que tapaba la foto y dejamos solo el resplandor exterior e interior */
-  box-shadow: 0 0 15px rgba(201, 168, 76, 0.8), inset 0 0 10px rgba(201, 168, 76, 0.5);
-  transform: scale(1.1);
+  border-color: var(--dorado);
+  background: rgba(201, 168, 76, 0.15);
 }
 
-/* ===== ARENA DE LUCHA LATERAL Y GRANDE ===== */
-.arena-lucha-contenedor {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  max-width: 550px;
-  gap: 15px;
-  margin: 0 auto;
-}
-
-.avatar-lucha {
-  width: 100px;  /* Grandes y visibles */
-  height: 100px;
-  background-size: contain; /* Sin recortar en círculo, se ve la imagen entera */
-  background-repeat: no-repeat;
-  background-position: center;
-  position: relative;
-  z-index: 10;
-  transition: transform 0.2s ease;
-}
-
-/* Animaciones de ataque reales cruzando la pantalla */
-@keyframes ataqueHaciaDerecha {
-  0% { transform: translateX(0) scale(1); }
-  50% { transform: translateX(180px) scale(1.25); z-index: 50; }
-  100% { transform: translateX(0) scale(1); }
-}
-
-@keyframes ataqueHaciaIzquierda {
-  0% { transform: translateX(0) scale(1); }
-  50% { transform: translateX(-180px) scale(1.25); z-index: 50; }
-  100% { transform: translateX(0) scale(1); }
-}
-
-/* Animación de impacto / daño */
-@keyframes recibirImpacto {
-  0%, 100% { transform: translateX(0); filter: brightness(1); }
-  25% { transform: translateX(-10px) rotate(-10deg); filter: brightness(0.3) sepia(1) hue-rotate(-50deg); }
-  75% { transform: translateX(10px) rotate(10deg); filter: brightness(0.3) sepia(1) hue-rotate(-50deg); }
-}
-
-.anim-atacar-der { animation: ataqueHaciaDerecha 0.6s ease-in-out; }
-.anim-atacar-izq { animation: ataqueHaciaIzquierda 0.6s ease-in-out; }
-.anim-dano { animation: recibirImpacto 0.5s ease-in-out; }
-
-/* ===== ARREGLO BOTÓN SALIR EN PARTIDA ===== */
-#pantallaJuego #btnSalirPartida {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  width: auto !important;
-  height: auto !important;
-  padding: 8px 16px;
-  z-index: 100;
+.avatar-opcion.seleccionado img {
+  border-color: var(--dorado) !important;
 }

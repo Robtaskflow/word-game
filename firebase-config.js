@@ -36,6 +36,7 @@ function guardarUsuario(uid, nombre, email) {
     pistas: 3,
     tiempoExtra: 3,
     fantasmas: 3,
+    avatar: 'ninja1',
     creadoEn: firebase.firestore.FieldValue.serverTimestamp()
   })
 }
@@ -72,6 +73,10 @@ function xpSiguienteRango(xp) {
   if (xp >= 3000) return { actual: xp - 3000, necesaria: 3000 }
   if (xp >= 1000) return { actual: xp - 1000, necesaria: 2000 }
   return { actual: xp, necesaria: 1000 }
+}
+
+function guardarAvatar(uid, avatar) {
+  return db.collection('usuarios').doc(uid).update({ avatar: avatar })
 }
 
 function actualizarXP(uid, cantidad, esVictoria) {

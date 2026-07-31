@@ -15,7 +15,6 @@ let juegosGanadosLocal = 0
 let juegosGanadosRival = 0
 let fantasmaActivo = false
 
-// Función global para quitar acentos
 function quitarAcentos(texto) {
   return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
@@ -32,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
           usuarioActual = doc.data()
           gestionarRecargaVidas()
           mostrarBarraUsuario()
+          actualizarUIAvatar()
           document.getElementById('pantallaLogin').style.display = 'none'
           document.getElementById('pantallaBienvenida').style.display = 'flex'
           const titulo = document.getElementById('tituloBienvenida')
@@ -94,8 +94,9 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         const usuario = auth.currentUser
         guardarUsuario(usuario.uid, nombre, usuario.email).then(function() {
-          usuarioActual = { nombreMostrar: nombre, xp: 0, victorias: 0, derrotas: 0, partidas: 0, vidas: 6, tiempoUltimaPerdida: null, pistas: 3, tiempoExtra: 3, fantasmas: 3, diamantes: 0 }
+          usuarioActual = { nombreMostrar: nombre, xp: 0, victorias: 0, derrotas: 0, partidas: 0, vidas: 6, tiempoUltimaPerdida: null, pistas: 3, tiempoExtra: 3, fantasmas: 3, diamantes: 0, avatar: 'ninja1' }
           mostrarBarraUsuario()
+          actualizarUIAvatar()
           document.getElementById('pantallaElegirNombre').style.display = 'none'
           document.getElementById('pantallaBienvenida').style.display = 'flex'
         })
@@ -199,6 +200,90 @@ document.addEventListener('DOMContentLoaded', function() {
     usuarioActual.diamantes = (usuarioActual.diamantes || 0) + cantidad
     actualizarDiamantesUI()
     añadirDiamantes(usuario.uid, cantidad)
+  }
+
+  // ----- AVATARES -----
+
+  function seleccionarAvatar(nombreAvatar) {
+    const usuario = auth.currentUser
+    if (!usuario || !usuarioActual) return
+    usuarioActual.avatar = nombreAvatar
+    guardarAvatar(usuario.uid, nombreAvatar)
+    actualizarUIAvatar()
+    alert('Avatar guardado: ' + (nombreAvatar === 'ninja1' ? 'Ninja 🥷' : 'Mago 🧙'))
+  }
+
+  window.seleccionarAvatar = seleccionarAvatar
+
+  function actualizarUIAvatar() {
+    if (!usuarioActual) return
+    const avatar = usuarioActual.avatar || 'ninja1'
+
+    const elNinja = document.getElementById('avatarNinja')
+    const elMago = document.getElementById('avatarMago')
+    const imgNinja = document.getElementById('imgAvatarNinja')
+    const imgMago = document.getElementById('imgAvatarMago')
+
+    if (elNinja) elNinja.classList.toggle('seleccionado', avatar === 'ninja1')
+    if (elMago) elMago.classList.toggle('seleccionado', avatar === 'mago1')
+    if (imgNinja) imgNinja.style.borderColor = avatar === 'ninja1' ? 'var(--dorado)' : 'transparent'
+    if (imgMago) imgMago.style.borderColor = avatar === 'mago1' ? 'var(--dorado)' : 'transparent'
+
+    const imgJugador = document.getElementById('imgAvatarJugador')
+    if (imgJugador) imgJugador.src = avatar + '.png'
+  }
+
+  function animarAtaque(ganadorEsJugador) {
+    const avatarJugador = document.getElementById('imgAvatarJugador')
+    const avatarRival = document.getElementById('imgAvatarRival')
+    const proyectil = document.getElementById('proyectil')
+    if (!avatarJugador || !avatarRival || !proyectil) return
+
+    const miAvatar = usuarioActual ? (usuarioActual.avatar || 'ninja1') : 'ninja1'
+    const emojiAtaque = miAvatar === 'ninja1' ? '🗡️' : '🔥'
+
+    if (ganadorEsJugador) {
+      avatarJugador.classList.remove('atacando-derecha')
+      void avatarJugador.offsetWidth
+      avatarJugador.classList.add('atacando-derecha')
+
+      proyectil.textContent = emojiAtaque
+      proyectil.style.display = 'block'
+      proyectil.style.left = '80px'
+      proyectil.style.right = 'auto'
+      proyectil.style.top = '120px'
+      proyectil.className = 'proyectil proyectil-derecha'
+
+      setTimeout(function() {
+        avatarRival.classList.remove('recibiendo-golpe')
+        void avatarRival.offsetWidth
+        avatarRival.classList.add('recibiendo-golpe')
+        proyectil.style.display = 'none'
+      }, 350)
+    } else {
+      avatarRival.classList.remove('atacando-izquierda')
+      void avatarRival.offsetWidth
+      avatarRival.classList.add('atacando-izquierda')
+
+      proyectil.textContent = '⚡'
+      proyectil.style.display = 'block'
+      proyectil.style.right = '80px'
+      proyectil.style.left = 'auto'
+      proyectil.style.top = '120px'
+      proyectil.className = 'proyectil proyectil-izquierda'
+
+      setTimeout(function() {
+        avatarJugador.classList.remove('recibiendo-golpe')
+        void avatarJugador.offsetWidth
+        avatarJugador.classList.add('recibiendo-golpe')
+        proyectil.style.display = 'none'
+      }, 350)
+    }
+
+    setTimeout(function() {
+      avatarJugador.classList.remove('atacando-derecha', 'recibiendo-golpe')
+      avatarRival.classList.remove('atacando-izquierda', 'recibiendo-golpe')
+    }, 700)
   }
 
   // ----- GESTIÓN DE STOCK DE AYUDAS -----
@@ -420,6 +505,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const winrate = usuarioActual.partidas > 0 ? Math.round((usuarioActual.victorias / usuarioActual.partidas) * 100) : 0
     document.getElementById('perfilWinrate').textContent = winrate + '%'
     actualizarDiamantesUI()
+    actualizarUIAvatar()
     if (progreso.necesaria) {
       document.getElementById('barraProgreso').style.width = Math.round((progreso.actual / progreso.necesaria) * 100) + '%'
       document.getElementById('perfilXPTexto').textContent = progreso.actual + ' / ' + progreso.necesaria + ' XP para el siguiente rango'
@@ -497,13 +583,26 @@ document.addEventListener('DOMContentLoaded', function() {
     puntosMaquinaCOM = 0
     rondaCOM = 1
     document.getElementById('pantallaSeleccionModo').style.display = 'none'
+
+    // Configurar avatar jugador en arena VS COM
+    const miAvatar = usuarioActual ? (usuarioActual.avatar || 'ninja1') : 'ninja1'
+    const imgJugador = document.getElementById('imgAvatarJugador')
+    const nombreJugador = document.getElementById('nombreAvatarJugador')
+    const imgRival = document.getElementById('imgAvatarRival')
+    const nombreRival = document.getElementById('nombreAvatarRival')
+    if (imgJugador) imgJugador.src = miAvatar + '.png'
+    if (nombreJugador) nombreJugador.textContent = usuarioActual ? usuarioActual.nombreMostrar : 'Tú'
+    if (imgRival) imgRival.src = 'ninja1.png'
+    if (nombreRival) nombreRival.textContent = 'Computadora'
+
     document.getElementById('pantallaJuego').style.display = 'flex'
     iniciarRondaCOM()
   })
 
   document.getElementById('btnUnirse').addEventListener('click', function() {
     miNombre = usuarioActual ? usuarioActual.nombreMostrar : '—'
-    socket.emit('unirse', miNombre)
+    const miAvatar = usuarioActual ? (usuarioActual.avatar || 'ninja1') : 'ninja1'
+    socket.emit('unirse', { nombre: miNombre, avatar: miAvatar })
     document.getElementById('textoEspera').style.display = 'block'
     document.getElementById('btnUnirse').disabled = true
   })
@@ -513,14 +612,6 @@ document.addEventListener('DOMContentLoaded', function() {
   function iniciarRondaCOM() {
     if (puntosUsuarioCOM >= 5 || puntosMaquinaCOM >= 5) { finalizarPartidaCOM(); return }
     document.getElementById('rondaTexto').textContent = 'Ronda ' + rondaCOM + ' (Tú: ' + puntosUsuarioCOM + ' pts | IA: ' + puntosMaquinaCOM + ' pts)'
-    
-    // Asegurar que el avatar del jugador y el Mago se muestren correctamente al iniciar la ronda
-    const miAvatar = localStorage.getItem('wordgame_avatar') || 'avatar1.png';
-    const avatarJugador = document.getElementById('avatarLuchaJugador');
-    if (avatarJugador) {
-        avatarJugador.style.backgroundImage = `url('${miAvatar}')`;
-    }
-
     usuarioYaRespondio = false
     palabraMaquinaRonda = ''
     const categoriasKeys = Object.keys(diccionario)
@@ -576,90 +667,6 @@ document.addEventListener('DOMContentLoaded', function() {
       clearTimeout(timerCOM)
       mostrarResultadoCOM('(La IA respondió primero)', false, 0)
     }
-  }
-
-  function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
-    const avatarJugador = document.getElementById('avatarLuchaJugador');
-    const avatarCOM = document.getElementById('avatarLuchaCOM');
-    const iaValida = (palabraMaquinaRonda !== '(La IA falló)' && palabraMaquinaRonda !== '(Tiempo agotado)' && palabraMaquinaRonda !== '(La IA respondió primero)');
-    
-    // 1. Limpiar y activar las animaciones de golpe en la arena de lucha
-    if (avatarJugador && avatarCOM) {
-        avatarJugador.classList.remove('anim-atacar-der', 'anim-dano');
-        avatarCOM.classList.remove('anim-atacar-izq', 'anim-dano');
-        void avatarJugador.offsetWidth; 
-        void avatarCOM.offsetWidth;
-
-        if (validaUser && !iaValida) {
-            // Ganas tú: Embistes y el Mago (IA) recibe daño
-            avatarJugador.classList.add('anim-atacar-der');
-            setTimeout(() => avatarCOM.classList.add('anim-dano'), 250);
-        } else if (!validaUser && iaValida) {
-            // Gana COM: El Mago embiste y tú recibes daño
-            avatarCOM.classList.add('anim-atacar-izq');
-            setTimeout(() => avatarJugador.classList.add('anim-dano'), 250);
-        } else {
-            // Empate o ambos fallan: Chocan en el centro
-            avatarJugador.classList.add('anim-atacar-der');
-            avatarCOM.classList.add('anim-atacar-izq');
-        }
-    }
-
-    // 2. Esperamos 900ms para apreciar el golpe antes de pasar a la pantalla de resultados
-    setTimeout(() => {
-        document.getElementById('pantallaJuego').style.display = 'none';
-        document.getElementById('pantallaResultado').style.display = 'flex';
-        
-        const titulo = document.getElementById('tituloResultado');
-        titulo.textContent = validaUser ? 'PALABRA CORRECTA (+1)' : (ptsUser === 0 ? 'PALABRA INCORRECTA (INMUNE)' : 'PALABRA INCORRECTA (-1)');
-        titulo.style.color = validaUser ? '#2ecc71' : '#ff5e5e'; 
-
-        const contenedor = document.getElementById('respuestasJugadores');
-        
-        const claseUser = validaUser ? 'fila-verde' : 'fila-roja';
-        const colorBadgeUser = validaUser ? '#2ecc71' : '#e74c3c';
-        const textoSumaUser = validaUser ? 'Total: +1 pts' : (ptsUser === 0 ? 'Total: 0 pts' : 'Total: -1 pts');
-        const colorPtsUser = validaUser ? 't-verde' : 't-rojo';
-
-        const claseIA = iaValida ? 'fila-verde' : 'fila-roja';
-        const textoSumaIA = iaValida ? 'Total: +1 pts' : 'Total: -1 pts';
-        const colorPtsIA = iaValida ? 't-verde' : 't-rojo';
-
-        // Recuperamos tu foto personalizada para el icono del resultado
-        const iconoFinalJugador = localStorage.getItem('wordgame_avatar') || 'avatar1.png';
-
-        contenedor.innerHTML = `
-          <!-- Fila de Usuario -->
-          <div class="fila-resultado-custom ${claseUser}">
-            <div class="res-izq">
-              <div style="position:relative; display:inline-block;">
-                <div class="res-circulo-icono" style="background-image:url('${iconoFinalJugador}'); background-size:cover; background-position:center; border: 1px solid #1e3a6e;"></div>
-                <div style="position:absolute; bottom:-2px; right:-2px; width:12px; height:12px; background:${colorBadgeUser}; border-radius:50%; border:2px solid #16213e;"></div>
-              </div>
-              <span>Tú</span>
-            </div>
-            <div class="res-palabra-centro">${respUser || '--- --'}</div>
-            <div class="res-puntos-derecha ${colorPtsUser}">${textoSumaUser}</div>
-          </div>
-          <div class="texto-total-grande t-blanco">Total: ${puntosUsuarioCOM} pts</div>
-
-          <!-- Fila de la Computadora (IA) con el Mago -->
-          <div class="fila-resultado-custom ${claseIA}">
-            <div class="res-izq">
-              <div style="position:relative; display:inline-block;">
-                <div class="res-circulo-icono" style="background-image:url('mago.jpg'); background-size:cover; background-position:center; border: 1px solid #1e3a6e;"></div>
-                <div style="position:absolute; bottom:-2px; right:-2px; width:12px; height:12px; background:${iaValida ? '#2ecc71' : '#e74c3c'}; border-radius:50%; border:2px solid #16213e;"></div>
-              </div>
-              <span>Mago (IA)</span>
-            </div>
-            <div class="res-palabra-centro">${palabraMaquinaRonda}</div>
-            <div class="res-puntos-derecha ${colorPtsIA}">${textoSumaIA}</div>
-          </div>
-          <div class="texto-total-grande t-amarillo">Total: ${puntosMaquinaCOM} pts</div>
-        `;
-        
-        document.getElementById('btnSiguienteRonda').style.display = 'block';
-    }, 900);
   }
 
   // ----- RANKING -----
@@ -765,6 +772,19 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('pantallaInicio').style.display = 'none'
     const nombresJugadores = datos.jugadores || []
     const rival = nombresJugadores.find(function(n) { return n !== miNombre }) || 'Rival'
+
+    // Configurar avatares en arena
+    const miAvatar = usuarioActual ? (usuarioActual.avatar || 'ninja1') : 'ninja1'
+    const avatarRival = datos.avatarRival || 'ninja1'
+    const imgJugador = document.getElementById('imgAvatarJugador')
+    const imgRival = document.getElementById('imgAvatarRival')
+    const nombreJugador = document.getElementById('nombreAvatarJugador')
+    const nombreRival = document.getElementById('nombreAvatarRival')
+    if (imgJugador) imgJugador.src = miAvatar + '.png'
+    if (imgRival) imgRival.src = avatarRival + '.png'
+    if (nombreJugador) nombreJugador.textContent = miNombre || 'Tú'
+    if (nombreRival) nombreRival.textContent = rival
+
     document.getElementById('vsNombre1').textContent = miNombre || 'Tú'
     document.getElementById('vsNombre2').textContent = rival
     document.getElementById('pantallaVersus').style.display = 'flex'
@@ -815,11 +835,9 @@ document.addEventListener('DOMContentLoaded', function() {
       usuarioYaRespondio = true
       clearInterval(intervalo)
 
-      // Validación SIN acentos igual que el servidor
       const respuestaLimpia = quitarAcentos(respuesta.trim().toLowerCase())
       const letraLimpia = quitarAcentos(letraActualCOM.toLowerCase())
       const listaCategoria = diccionario[categoriaActualCOM] || []
-
       const empiezaBien = respuestaLimpia.charAt(0) === letraLimpia
       const estaEnDiccionario = listaCategoria.some(function(p) {
         return quitarAcentos(p.toLowerCase()) === respuestaLimpia
@@ -834,7 +852,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       fantasmaActivo = false
 
-      // La IA responde si no lo ha hecho ya
       if (!palabraMaquinaRonda) {
         const aciertaIA = Math.random() < 0.75
         const filtradas = listaCategoria.filter(function(p) {
@@ -859,6 +876,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function mostrarResultadoCOM(respUser, validaUser, ptsUser) {
+    // Animar ataque
+    animarAtaque(validaUser)
+
     document.getElementById('pantallaJuego').style.display = 'none'
     document.getElementById('pantallaResultado').style.display = 'flex'
     const titulo = document.getElementById('tituloResultado')
@@ -882,25 +902,34 @@ document.addEventListener('DOMContentLoaded', function() {
   socket.on('resultadoRonda', function(datos) {
     if (enModoVsCOM) return
     clearInterval(intervalo)
-    document.getElementById('pantallaJuego').style.display = 'none'
-    document.getElementById('pantallaResultado').style.display = 'flex'
-    document.getElementById('tituloResultado').textContent = datos.mensaje
-    const contenedor = document.getElementById('respuestasJugadores')
-    contenedor.innerHTML = ''
-    datos.jugadores.forEach(function(jugador) {
-      const fila = document.createElement('div')
-      fila.className = 'fila-jugador'
-      fila.innerHTML = `
-        <span class="nombre-jugador">${jugador.nombre}</span>
-        <span class="puntos-jugador">${jugador.respuesta || '(sin respuesta)'} — ${jugador.puntos} pts</span>
-      `
-      contenedor.appendChild(fila)
-    })
-    if (datos.ganadorPartida) {
-      setTimeout(function() { mostrarVictoria(datos) }, 2000)
-    } else {
-      document.getElementById('btnSiguienteRonda').style.display = 'block'
+
+    // Animar ataque según quién ganó la ronda
+    if (datos.mensaje && miNombre) {
+      const jugadorGano = datos.mensaje.includes(miNombre)
+      animarAtaque(jugadorGano)
     }
+
+    setTimeout(function() {
+      document.getElementById('pantallaJuego').style.display = 'none'
+      document.getElementById('pantallaResultado').style.display = 'flex'
+      document.getElementById('tituloResultado').textContent = datos.mensaje
+      const contenedor = document.getElementById('respuestasJugadores')
+      contenedor.innerHTML = ''
+      datos.jugadores.forEach(function(jugador) {
+        const fila = document.createElement('div')
+        fila.className = 'fila-jugador'
+        fila.innerHTML = `
+          <span class="nombre-jugador">${jugador.nombre}</span>
+          <span class="puntos-jugador">${jugador.respuesta || '(sin respuesta)'} — ${jugador.puntos} pts</span>
+        `
+        contenedor.appendChild(fila)
+      })
+      if (datos.ganadorPartida) {
+        setTimeout(function() { mostrarVictoria(datos) }, 2000)
+      } else {
+        document.getElementById('btnSiguienteRonda').style.display = 'block'
+      }
+    }, 600)
   })
 
   document.getElementById('btnSiguienteRonda').addEventListener('click', function() {
@@ -1187,60 +1216,4 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(function(error) { console.log('Error SW:', error) })
   }
 
- // ▼▼ CÓDIGO DE LOS AVATARES (ACTUALIZADO CON ARENA DE LUCHA) ▼▼
-  let miAvatar = localStorage.getItem('wordgame_avatar') || 'avatar1.png'; 
-  
-  const barraRango = document.getElementById('barraRango');
-  const avatarLuchaJugador = document.getElementById('avatarLuchaJugador'); // Elemento grande de la partida
-
-  // Función para aplicar el avatar en todos los sitios donde aparece
-  function actualizarAvatarEnPantalla(avatarUrl) {
-      if (barraRango) {
-          barraRango.style.backgroundImage = `url('${avatarUrl}')`;
-          barraRango.textContent = ''; 
-      }
-      if (avatarLuchaJugador) {
-          avatarLuchaJugador.style.backgroundImage = `url('${avatarUrl}')`;
-      }
-  }
-
-  // Aplicar al cargar la página
-  actualizarAvatarEnPantalla(miAvatar);
-
-  const botonesAvatar = document.querySelectorAll('.avatar-opcion');
-  botonesAvatar.forEach(boton => {
-    // Iluminar el que ya teníamos guardado
-    if(boton.dataset.avatar === miAvatar) {
-      boton.classList.add('seleccionado');
-    }
-
-    // Al hacer clic en un personaje en la pantalla de perfil
-    boton.addEventListener('click', (e) => {
-      botonesAvatar.forEach(b => b.classList.remove('seleccionado'));
-      e.currentTarget.classList.add('seleccionado');
-      
-      miAvatar = e.currentTarget.dataset.avatar;
-      localStorage.setItem('wordgame_avatar', miAvatar);
-      
-      // Actualizar en tiempo real
-      actualizarAvatarEnPantalla(miAvatar);
-    });
-  });
-  // ▲▲ HASTA AQUÍ EL CÓDIGO DE AVATARES ▲▲
-
-  // ----- BOTÓN SALIR DE PARTIDA -----
-  const btnSalir = document.getElementById('btnSalirPartida');
-  if (btnSalir) {
-    btnSalir.addEventListener('click', () => {
-      const seguro = confirm("¿Estás seguro de que quieres abandonar? Perderás la partida.");
-      if (seguro) {
-        document.getElementById('pantallaJuego').style.display = 'none';
-        document.getElementById('pantallaMenu').style.display = 'flex';
-        // Limpiamos los temporizadores activos de la partida
-        if (typeof intervalo !== 'undefined') clearInterval(intervalo);
-        if (typeof timerCOM !== 'undefined') clearTimeout(timerCOM);
-      }
-    });
-  }
-  
 }) // cierre del DOMContentLoaded

@@ -196,18 +196,56 @@
   </div>
 
 <!-- PANTALLA JUEGO -->
+ <!-- PANTALLA JUEGO -->
   <div class="pantalla" id="pantallaJuego" style="display:none;">
+    <p class="ronda" id="rondaTexto">Ronda 1</p>
+
+    <!-- Avatares de combate -->
+    <div class="arena-avatares">
+      <div class="avatar-combate" id="avatarJugadorCombate">
+        <img id="imgAvatarJugador" src="ninja1.png" class="avatar-img" />
+        <p id="nombreAvatarJugador" class="avatar-nombre-combate">Tú</p>
+      </div>
+      <div class="arena-centro">VS</div>
+      <div class="avatar-combate avatar-rival" id="avatarRivalCombate">
+        <img id="imgAvatarRival" src="ninja1.png" class="avatar-img" />
+        <p id="nombreAvatarRival" class="avatar-nombre-combate">Rival</p>
+      </div>
+    </div>
+
+    <!-- Proyectil de ataque -->
+    <div id="proyectil" class="proyectil" style="display:none;"></div>
+
+    <div class="contenedor">
+      <div class="tarjeta">
+        <p class="etiqueta">Categoría</p>
+        <p class="valor" id="categoria">—</p>
+      </div>
+      <div class="tarjeta">
+        <p class="etiqueta">Letra</p>
+        <p class="letra" id="letra">—</p>
+      </div>
+      <div class="tarjeta">
+        <p class="cronometro" id="cronometro">0.0</p>
+      </div>
+      <div class="tarjeta" style="padding: 10px; display: flex; gap: 6px; justify-content: space-around;">
+        <button id="btnAyudaPista" class="btn-ayuda">💡 Pista (<span id="stockPista">0</span>)</button>
+        <button id="btnAyudaTiempo" class="btn-ayuda">🔒 Bloquear (<span id="stockTiempo">0</span>)</button>
+        <button id="btnAyudaFantasma" class="btn-ayuda">👻 Fantasma (<span id="stockFantasma">0</span>)</button>
+      </div>
+      <div class="tarjeta">
+        <p class="etiqueta">Tu respuesta</p>
+        <input type="text" id="inputRespuesta" placeholder="Escribe la palabra" />
+        <button id="btnEnviar">Enviar</button>
+      </div>
+    </div>
+  </div>
     
     <!-- Botón de salir pequeño arriba a la izquierda -->
     <button class="btn-volver" id="btnSalirPartida">← Salir</button>
     
     <p class="ronda" id="rondaTexto">Ronda 1</p>
-    
-    <!-- Contenedor general que alinea los avatares grandes a los flancos de la mesa -->
-    <div class="arena-lucha-contenedor">
-      
-      <!-- TU AVATAR (Izquierda) -->
-      <div id="avatarLuchaJugador" class="avatar-lucha"></div>
+  
 
       <!-- CONTENEDOR CENTRAL DE CARTAS -->
       <div class="contenedor" style="flex: 1; max-width: 380px;">
@@ -234,11 +272,7 @@
         </div>
       </div>
 
-      <!-- AVATAR RIVAL / MAGO (Derecha) -->
-      <div id="avatarLuchaCOM" class="avatar-lucha" style="background-image: url('mago1.png');"></div>
-
-    </div>
-  </div>
+      
 
   <!-- PANTALLA TIENDA -->
   <div class="pantalla" id="pantallaTienda" style="display:none;">
@@ -370,6 +404,21 @@
     <button class="btn-volver" id="btnVolverPerfil">← Volver</button>
     <div class="perfil-contenido">
       <div class="perfil-cabecera">
+
+        <!-- Selección de avatar -->
+      <div class="tarjeta" style="text-align:center;">
+        <p class="etiqueta">Tu avatar</p>
+        <div style="display:flex; gap:16px; justify-content:center; margin-top:8px;">
+          <div class="avatar-opcion" id="avatarNinja" onclick="seleccionarAvatar('ninja1')">
+            <img src="ninja1.png" width="70" height="70" style="border-radius:50%; border:3px solid transparent;" id="imgAvatarNinja" />
+            <p style="font-size:0.75rem; color:#a0a0b0; margin-top:4px;">Ninja</p>
+          </div>
+          <div class="avatar-opcion" id="avatarMago" onclick="seleccionarAvatar('mago1')">
+            <img src="mago1.png" width="70" height="70" style="border-radius:50%; border:3px solid transparent;" id="imgAvatarMago" />
+            <p style="font-size:0.75rem; color:#a0a0b0; margin-top:4px;">Mago</p>
+          </div>
+        </div>
+      </div>
         <div class="perfil-rango" id="perfilRango">🥉</div>
         <div class="perfil-nombre" id="perfilNombre">—</div>
         <div class="perfil-nivel" id="perfilNivel">Bronze · 0 XP</div>
@@ -380,39 +429,6 @@
         <div style="margin-top:10px; font-size:0.9rem; color:#7dde7d; font-weight:700;">💎 <span id="perfilDiamantes">0</span> diamantes</div>
       </div>
       
-      <!-- NUEVO: SELECCIÓN DE AVATAR (IMÁGENES JPG) -->
-      <div class="tarjeta" style="text-align: center; margin-bottom: 16px;">
-        <p class="etiqueta" style="margin-bottom: 12px;">Elige tu Personaje</p>
-        <div style="display: flex; justify-content: center; gap: 15px;">
-          <!-- Personaje 1 -->
-          <div class="avatar-opcion" data-avatar="ninja1.png" style="background-image: url('ninja1.png'); background-size: cover; background-position: center;"></div>
-          <!-- Personaje 2 -->
-          <div class="avatar-opcion" data-avatar="mago1.png" style="background-image: url('mago1.png'); background-size: cover; background-position: center;"></div>
-        </div>
-      </div>
-      <!-- FIN SELECCIÓN DE AVATAR -->
-
-      <div class="stats-grid">
-        <div class="stat-card stat-victorias">
-          <div class="stat-numero" id="perfilVictorias">0</div>
-          <div class="stat-label">Victorias</div>
-        </div>
-        <div class="stat-card stat-derrotas">
-          <div class="stat-numero" id="perfilDerrotas">0</div>
-          <div class="stat-label">Derrotas</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-numero" id="perfilPartidas">0</div>
-          <div class="stat-label">Partidas</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-numero" id="perfilWinrate">0%</div>
-          <div class="stat-label">Winrate</div>
-        </div>
-      </div>
-      <button id="btnCerrarSesion" style="margin-top:20px; background:#333;">Cerrar sesión</button>
-    </div>
-  </div>
 
   <!-- PANTALLA VERSUS -->
   <div class="pantalla" id="pantallaVersus" style="display:none;">
