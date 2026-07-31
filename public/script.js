@@ -15,6 +15,23 @@ let juegosGanadosLocal = 0
 let juegosGanadosRival = 0
 let fantasmaActivo = false
 
+// ----- SISTEMA DE RANGOS Y XP (Faltaba esto) -----
+function calcularRango(xp) {
+  if (xp < 200) return { nombre: 'Bronce', icono: '🥉' }
+  if (xp < 600) return { nombre: 'Plata', icono: '🥈' }
+  if (xp < 1200) return { nombre: 'Oro', icono: '🥇' }
+  if (xp < 2000) return { nombre: 'Diamante', icono: '💎' }
+  return { nombre: 'Leyenda', icono: '👑' }
+}
+
+function xpSiguienteRango(xp) {
+  if (xp < 200) return { actual: xp, necesaria: 200 }
+  if (xp < 600) return { actual: xp, necesaria: 600 }
+  if (xp < 1200) return { actual: xp, necesaria: 1200 }
+  if (xp < 2000) return { actual: xp, necesaria: 2000 }
+  return { actual: xp, necesaria: null } 
+}
+
 function quitarAcentos(texto) {
   return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }

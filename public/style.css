@@ -1067,32 +1067,36 @@ button:disabled {
 /* ===== PROYECTILES (CUCHILLO Y FUEGO) EN PARTIDA ===== */
 .proyectil-arma, .proyectil-fuego {
   position: absolute;
+  top: 50%;
+  margin-top: -20px;
   width: 40px;
   height: 40px;
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
-  z-index: 100;
+  z-index: 99999; /* Capa máxima para que NADA los tape */
   pointer-events: none;
   opacity: 0;
 }
 
-/* Animación del proyectil que tú disparas */
+.proyectil-arma { left: 90px; }
+.proyectil-fuego { right: 90px; }
+
+/* Usamos translateX para cruzar la pantalla sin importar el tamaño del móvil */
 @keyframes volarHaciaDerecha {
-  0% { left: 90px; top: 25px; opacity: 1; transform: scale(0.8) rotate(0deg); }
+  0% { transform: translateX(0) scale(0.8) rotate(0deg); opacity: 1; }
   80% { opacity: 1; }
-  100% { left: 450px; top: 25px; opacity: 0; transform: scale(1.2) rotate(360deg); }
+  100% { transform: translateX(180px) scale(1.2) rotate(360deg); opacity: 0; }
 }
 
-/* Animación de la bola de fuego de la IA */
 @keyframes volarHaciaIzquierda {
-  0% { right: 90px; top: 25px; opacity: 1; transform: scale(0.8); }
+  0% { transform: translateX(0) scale(0.8); opacity: 1; }
   80% { opacity: 1; }
-  100% { right: 450px; top: 25px; opacity: 0; transform: scale(1.5); }
+  100% { transform: translateX(-180px) scale(1.5); opacity: 0; }
 }
 
-.volar-derecha { animation: volarHaciaDerecha 0.5s ease-in-out forwards; }
-.volar-izquierda { animation: volarHaciaIzquierda 0.5s ease-in-out forwards; }
+.volar-derecha { animation: volarHaciaDerecha 0.5s ease-in forwards; }
+.volar-izquierda { animation: volarHaciaIzquierda 0.5s ease-in forwards; }
 
 /* Efecto de recibir el golpe */
 @keyframes dañoImpacto {
